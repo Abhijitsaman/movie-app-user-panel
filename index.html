@@ -1,0 +1,599 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StreamUI - Premium Skeleton</title>
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --bg-color: #141414;
+            --card-bg: #2f2f2f;
+            --accent: #E50914; /* Netflix Red */
+            --text-main: #ffffff;
+            --text-sec: #b3b3b3;
+            --nav-bg: #121212;
+            --nav-height: 60px;
+            --radius: 4px;
+            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            padding-bottom: calc(var(--nav-height) + 20px); /* Space for bottom nav */
+            overflow-x: hidden;
+        }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+        .text-sec { color: var(--text-sec); font-size: 0.9rem; }
+        .btn {
+            border: none;
+            border-radius: var(--radius);
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.7; }
+        .btn-primary { background: var(--accent); color: white; padding: 10px 20px; }
+        .btn-secondary { background: white; color: black; padding: 8px 16px; }
+        .btn-glass { background: rgba(255,255,255,0.2); color: white; padding: 8px 16px; }
+        .btn-full { width: 100%; padding: 12px; margin-top: 10px; font-size: 1rem; }
+
+        /* --- NAVIGATION (FIXED BOTTOM) --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background: var(--nav-bg);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #333;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-sec);
+            font-size: 0.65rem;
+            cursor: pointer;
+            width: 25%;
+        }
+
+        .nav-item.active { color: white; }
+        
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            background: var(--text-sec);
+            margin-bottom: 4px;
+            mask-size: contain;
+            mask-repeat: no-repeat;
+            mask-position: center;
+            -webkit-mask-size: contain;
+            -webkit-mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+        }
+
+        .nav-item.active .nav-icon { background: white; }
+
+        /* CSS Icons (Shapes) */
+        .icon-home { -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' fill='black'/%3E%3Cpolyline points='9 22 9 12 15 12 15 22' stroke='black' stroke-width='2'/%3E%3C/svg%3E"); }
+        .icon-search { -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8' stroke='black' stroke-width='3'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65' stroke='black' stroke-width='3'/%3E%3C/svg%3E"); }
+        .icon-list { -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='3' width='7' height='7' fill='black'/%3E%3Crect x='14' y='3' width='7' height='7' fill='black'/%3E%3Crect x='14' y='14' width='7' height='7' fill='black'/%3E%3Cpath d='M3 14h7v7H3z' stroke='black' stroke-width='2'/%3E%3C/svg%3E"); }
+        .icon-user { -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' stroke='black' stroke-width='3'/%3E%3Ccircle cx='12' cy='7' r='4' stroke='black' stroke-width='3'/%3E%3C/svg%3E"); }
+
+        /* --- SCREEN: HOME --- */
+        .header {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .app-logo { color: var(--accent); font-weight: 900; font-size: 1.5rem; letter-spacing: 1px; }
+
+        /* Banner */
+        .banner-container {
+            position: relative;
+            width: 100%;
+            height: 55vh;
+            background: #222;
+            overflow: hidden;
+        }
+        .banner-slide {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+        .banner-slide.active { opacity: 1; }
+        .banner-placeholder {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #333 0%, #141414 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px;
+            padding-bottom: 60px;
+        }
+        .banner-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px black;
+        }
+        .banner-dots {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+        .dot { width: 8px; height: 8px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        .dot.active { background: white; }
+
+        /* Rows */
+        .content-section { margin-top: 20px; padding-left: 20px; }
+        .row-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: #e5e5e5; }
+        .row-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            padding-right: 20px;
+            scrollbar-width: none; /* Firefox */
+        }
+        .row-scroll::-webkit-scrollbar { display: none; }
+        
+        .movie-card {
+            min-width: 110px;
+            height: 160px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .movie-card:hover { transform: scale(1.05); z-index: 2; }
+        
+        /* Specific Aspect Ratios */
+        .row-trending .movie-card { min-width: 140px; height: 200px; } /* Larger for Trending */
+
+        /* --- SCREEN: SEARCH --- */
+        .search-container { padding: 50px 20px 20px 20px; }
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            background: #333;
+            border: none;
+            color: white;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            margin-bottom: 30px;
+        }
+        .search-input::placeholder { color: #888; }
+        .search-input:focus { outline: 2px solid #555; }
+
+        .genre-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag {
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #ccc;
+            cursor: pointer;
+        }
+        .tag:active { background: #444; color: white; }
+
+        /* --- SCREEN: MY LIST & PROFILE (SHARED EMPTY STATES) --- */
+        .empty-state {
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: #333;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+        .empty-title { font-size: 1.2rem; margin-bottom: 10px; font-weight: bold; }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: var(--accent);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        /* --- OVERLAYS: MOVIE DETAIL & LOGIN --- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #141414;
+            z-index: 200;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .overlay.open { transform: translateY(0); }
+
+        .detail-header {
+            height: 40vh;
+            background: #333;
+            position: relative;
+        }
+        .detail-close {
+            position: absolute;
+            top: 20px; right: 20px;
+            width: 30px; height: 30px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 210;
+        }
+        .detail-content { padding: 20px; }
+        .detail-title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; }
+        .detail-meta { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+        .detail-desc { line-height: 1.5; color: #ccc; margin-bottom: 30px; }
+        .action-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .action-col { display: flex; flex-direction: column; align-items: center; color: #888; font-size: 0.8rem; gap: 5px; cursor: pointer;}
+        
+        /* LOGIN MODAL (Bottom Sheet style) */
+        .login-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 300;
+            display: flex;
+            align-items: flex-end;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .login-backdrop.visible { opacity: 1; pointer-events: auto; }
+        
+        .login-sheet {
+            width: 100%;
+            background: #222;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            padding: 30px 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s;
+        }
+        .login-backdrop.visible .login-sheet { transform: translateY(0); }
+
+    </style>
+</head>
+<body>
+
+    <!-- === SCREEN 1: HOME === -->
+    <div id="screen-home" class="screen">
+        <header class="header">
+            <div class="app-logo">NETSTREAM</div>
+            <div class="nav-icon icon-search" style="background: white;" onclick="navTo('search')"></div>
+        </header>
+
+        <!-- Auto Banner -->
+        <div class="banner-container" id="banner-slider">
+            <!-- JS will populate placeholders here -->
+        </div>
+
+        <!-- Content Rows -->
+        <div id="home-content">
+            <!-- JS will populate rows -->
+        </div>
+    </div>
+
+    <!-- === SCREEN 2: SEARCH === -->
+    <div id="screen-search" class="screen hidden">
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="Search movies, series, or genres">
+            
+            <div id="search-tags-container">
+                <p class="row-title" style="margin-bottom: 15px;">Browse Categories</p>
+                <div class="genre-tags">
+                    <span class="tag">Action</span>
+                    <span class="tag">Drama</span>
+                    <span class="tag">Comedy</span>
+                    <span class="tag">Horror</span>
+                    <span class="tag">Romance</span>
+                    <span class="tag">Thriller</span>
+                    <span class="tag">Sci-Fi</span>
+                    <span class="tag">Animation</span>
+                    <span class="tag">Kids</span>
+                </div>
+            </div>
+
+            <div id="search-results" class="hidden" style="margin-top: 40px; text-align: center;">
+                <p class="text-sec">Movies will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- === SCREEN 3: MY LIST === -->
+    <div id="screen-list" class="screen hidden">
+        <div class="empty-state">
+            <div class="empty-icon"></div>
+            <div class="empty-title">Your List is Empty</div>
+            <p class="text-sec" style="margin-bottom: 20px;">Your saved movies will appear here.</p>
+            <button class="btn btn-primary" onclick="showLogin('To save your list')">Continue with Google to save movies</button>
+        </div>
+    </div>
+
+    <!-- === SCREEN 4: PROFILE === -->
+    <div id="screen-profile" class="screen hidden">
+        <div class="empty-state">
+            <div class="profile-avatar">?</div>
+            <div class="empty-title">Guest User</div>
+            <p class="text-sec" style="margin-bottom: 20px;">You are browsing as a Guest.<br>Login to save movies, likes, and watch history.</p>
+            <button class="btn btn-primary btn-full" onclick="showLogin('To access your profile')">Continue with Google</button>
+        </div>
+    </div>
+
+    <!-- === MOVIE DETAIL OVERLAY === -->
+    <div id="detail-overlay" class="overlay">
+        <div class="detail-close" onclick="closeDetail()">✕</div>
+        <div class="detail-header" id="detail-bg"></div>
+        <div class="detail-content">
+            <div class="detail-title">Placeholder Title</div>
+            <div class="detail-meta">2024 • 2h 15m • Action</div>
+            
+            <button class="btn btn-secondary btn-full" style="margin-bottom: 20px;">Play</button>
+            <button class="btn btn-glass btn-full" style="margin-bottom: 20px;">Download</button>
+            
+            <div class="detail-desc">
+                This is a UI placeholder for the movie description. Real content, API data, and actual synopsis text will be injected here once the backend is connected.
+            </div>
+
+            <div class="action-row" style="justify-content: space-around;">
+                <div class="action-col" onclick="showLogin('To add to My List')">
+                    <div class="nav-icon icon-list"></div>
+                    <span>My List</span>
+                </div>
+                <div class="action-col" onclick="showLogin('To like this movie')">
+                    <div style="font-size: 1.2rem;">👍</div>
+                    <span>Rate</span>
+                </div>
+                <div class="action-col">
+                    <div style="font-size: 1.2rem;">↗</div>
+                    <span>Share</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === LOGIN MODAL === -->
+    <div id="login-modal" class="login-backdrop">
+        <div class="login-sheet">
+            <h3 style="margin-bottom: 10px; font-size: 1.2rem;">Sign In</h3>
+            <p id="login-msg" class="text-sec" style="margin-bottom: 20px;">Sign in to unlock all features.</p>
+            <button class="btn btn-primary btn-full" onclick="performMockLogin()">Continue with Google</button>
+            <button class="btn btn-glass btn-full" style="margin-top: 10px; border: 1px solid #444;" onclick="hideLogin()">Later</button>
+        </div>
+    </div>
+
+    <!-- === BOTTOM NAVIGATION === -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="navTo('home')">
+            <div class="nav-icon icon-home"></div>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" id="nav-search" onclick="navTo('search')">
+            <div class="nav-icon icon-search"></div>
+            <span>Search</span>
+        </div>
+        <div class="nav-item" id="nav-list" onclick="navTo('list')">
+            <div class="nav-icon icon-list"></div>
+            <span>My List</span>
+        </div>
+        <div class="nav-item" id="nav-profile" onclick="navTo('profile')">
+            <div class="nav-icon icon-user"></div>
+            <span>Profile</span>
+        </div>
+    </nav>
+
+    <!-- === JAVASCRIPT LOGIC === -->
+    <script>
+        /* 
+         * ------------------------------------------------------------------
+         *  FIREBASE CONFIGURATION PLACEHOLDER (Ready for Backend)
+         * ------------------------------------------------------------------
+         *  To enable real backend features, Initialize Firebase App here.
+         *  
+         *  const firebaseConfig = {
+         *    apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+         *    authDomain: "mymovieapp-b088c.firebaseapp.com",
+         *    projectId: "mymovieapp-b088c",
+         *    storageBucket: "mymovieapp-b088c.firebasestorage.app",
+         *    messagingSenderId: "243642474836",
+         *    appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+         *  };
+         * 
+         *  // firebase.initializeApp(firebaseConfig);
+         * ------------------------------------------------------------------
+         */
+
+        // --- APP STATE & NAVIGATION ---
+        function navTo(screenId) {
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            // Show target screen
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            
+            // Update Nav Icons
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${screenId}`).classList.add('active');
+            
+            // Special behavior for My List triggers login prompt strictly on interaction? 
+            // The prompt says "UI Logic Only" - "Login Modal appears when User opens My List".
+            // Since I made a specific screen for it, I will show the prompt immediately if they click nav.
+            if(screenId === 'list') {
+                 showLogin("To see your saved movies");
+            }
+        }
+
+        // --- HOME SCREEN GENERATOR ---
+        const rowCategories = [
+            "Continue Watching", "Trending Now", "New Releases", 
+            "Popular Movies", "Top Rated", "Action Movies", 
+            "Drama Movies", "Comedy Movies", "Horror Movies"
+        ];
+
+        function initHome() {
+            const container = document.getElementById('home-content');
+            
+            rowCategories.forEach((cat, index) => {
+                const section = document.createElement('div');
+                section.className = 'content-section';
+                if(cat === "Trending Now") section.classList.add('row-trending');
+
+                const title = document.createElement('div');
+                title.className = 'row-title';
+                title.innerText = cat;
+
+                const scrollBox = document.createElement('div');
+                scrollBox.className = 'row-scroll';
+
+                // Generate 8 empty cards per row
+                for(let i=0; i<8; i++) {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    // Click event to open details
+                    card.onclick = () => openDetail();
+                    scrollBox.appendChild(card);
+                }
+
+                section.appendChild(title);
+                section.appendChild(scrollBox);
+                container.appendChild(section);
+            });
+        }
+
+        // --- BANNER SLIDER LOGIC ---
+        let currentSlide = 0;
+        function initBanner() {
+            const container = document.getElementById('banner-slider');
+            // Create 3 placeholder slides
+            for(let i=0; i<3; i++) {
+                const slide = document.createElement('div');
+                slide.className = `banner-slide ${i === 0 ? 'active' : ''}`;
+                slide.innerHTML = `
+                    <div class="banner-placeholder">
+                        <div class="banner-text">Featured Title ${i+1}</div>
+                        <div class="text-sec">#${i+1} in Movies Today</div>
+                    </div>
+                `;
+                container.appendChild(slide);
+            }
+
+            // Create dots
+            const dotContainer = document.createElement('div');
+            dotContainer.className = 'banner-dots';
+            for(let i=0; i<3; i++) {
+                const dot = document.createElement('div');
+                dot.className = `dot ${i === 0 ? 'active' : ''}`;
+                dotContainer.appendChild(dot);
+            }
+            container.querySelector('.banner-placeholder').appendChild(dotContainer); // Append to last valid container logic
+
+            // Auto-Slide Timer
+            setInterval(() => {
+                const slides = document.querySelectorAll('.banner-slide');
+                const dots = document.querySelectorAll('.dot');
+                
+                slides[currentSlide].classList.remove('active');
+                dots[currentSlide].classList.remove('active');
+                
+                currentSlide = (currentSlide + 1) % slides.length;
+                
+                slides[currentSlide].classList.add('active');
+                dots[currentSlide].classList.add('active');
+            }, 5000);
+        }
+
+        // --- SEARCH LOGIC ---
+        // Bind tag clicks
+        document.querySelectorAll('.tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                document.getElementById('search-tags-container').classList.add('hidden');
+                document.getElementById('search-results').classList.remove('hidden');
+            });
+        });
+
+        // --- DETAIL OVERLAY LOGIC ---
+        function openDetail() {
+            document.getElementById('detail-overlay').classList.add('open');
+        }
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('open');
+        }
+
+        // --- LOGIN MODAL LOGIC ---
+        function showLogin(msg) {
+            const modal = document.getElementById('login-modal');
+            const msgBox = document.getElementById('login-msg');
+            if(msg) msgBox.innerText = msg;
+            modal.classList.add('visible');
+        }
+        function hideLogin() {
+            document.getElementById('login-modal').classList.remove('visible');
+        }
+        function performMockLogin() {
+            console.log("Connect to Google Auth Provider using firebaseConfig here.");
+            alert("This is a UI Skeleton. Connect Firebase in the code to enable real login.");
+            hideLogin();
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initBanner();
+            initHome();
+        });
+
+    </script>
+</body>
+</html>
