@@ -1,4 +1,4 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -307,6 +307,11 @@
         .login-backdrop.visible .login-sheet { transform: translateY(0); }
 
     </style>
+    <!-- Firebase SDK Scripts (using compat version for initializeApp) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script> <!-- Added for potential movie data fetching -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <!-- Added for potential movie uploads/images -->
 </head>
 <body>
 
@@ -356,21 +361,27 @@
 
     <!-- === SCREEN 3: MY LIST === -->
     <div id="screen-list" class="screen hidden">
-        <div class="empty-state">
+        <div class="empty-state" id="list-empty-state">
             <div class="empty-icon"></div>
             <div class="empty-title">Your List is Empty</div>
             <p class="text-sec" style="margin-bottom: 20px;">Your saved movies will appear here.</p>
             <button class="btn btn-primary" onclick="showLogin('To save your list')">Continue with Google to save movies</button>
         </div>
+        <div id="list-content" class="hidden">
+            <!-- JS will populate user's list here -->
+        </div>
     </div>
 
     <!-- === SCREEN 4: PROFILE === -->
     <div id="screen-profile" class="screen hidden">
-        <div class="empty-state">
+        <div class="empty-state" id="profile-guest-state">
             <div class="profile-avatar">?</div>
             <div class="empty-title">Guest User</div>
             <p class="text-sec" style="margin-bottom: 20px;">You are browsing as a Guest.<br>Login to save movies, likes, and watch history.</p>
             <button class="btn btn-primary btn-full" onclick="showLogin('To access your profile')">Continue with Google</button>
+        </div>
+        <div id="profile-logged-in-state" class="hidden">
+            <!-- JS will populate logged-in profile info here -->
         </div>
     </div>
 
@@ -390,11 +401,11 @@
             </div>
 
             <div class="action-row" style="justify-content: space-around;">
-                <div class="action-col" onclick="showLogin('To add to My List')">
+                <div class="action-col" onclick="addToMyList()">
                     <div class="nav-icon icon-list"></div>
                     <span>My List</span>
                 </div>
-                <div class="action-col" onclick="showLogin('To like this movie')">
+                <div class="action-col" onclick="rateMovie()">
                     <div style="font-size: 1.2rem;">👍</div>
                     <span>Rate</span>
                 </div>
@@ -411,7 +422,7 @@
         <div class="login-sheet">
             <h3 style="margin-bottom: 10px; font-size: 1.2rem;">Sign In</h3>
             <p id="login-msg" class="text-sec" style="margin-bottom: 20px;">Sign in to unlock all features.</p>
-            <button class="btn btn-primary btn-full" onclick="performMockLogin()">Continue with Google</button>
+            <button class="btn btn-primary btn-full" onclick="performLogin()">Continue with Google</button>
             <button class="btn btn-glass btn-full" style="margin-top: 10px; border: 1px solid #444;" onclick="hideLogin()">Later</button>
         </div>
     </div>
@@ -438,43 +449,44 @@
 
     <!-- === JAVASCRIPT LOGIC === -->
     <script>
-            // --- Firebase Configuration ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
-    authDomain: "mymovieapp-b088c.firebaseapp.com",
-    projectId: "mymovieapp-b088c",
-    storageBucket: "mymovieapp-b088c.firebasestorage.app",
-    messagingSenderId: "243642474836",
-    appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
-  };
+        // ------------------------------------------------------------------
+        //  FIREBASE CONFIGURATION (Uncommented and Initialized)
+        // ------------------------------------------------------------------
+        // Your provided Firebase config
+        const firebaseConfig = {
+          apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+          authDomain: "mymovieapp-b088c.firebaseapp.com",
+          projectId: "mymovieapp-b088c",
+          storageBucket: "mymovieapp-b088c.firebasestorage.app",
+          messagingSenderId: "243642474836",
+          appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+        };
 
-  // Initialize Firebase
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        // const storage = firebase.storage(); // Uncomment if you need storage for movie uploads/images
 
-  // --- APP STATE & NAVIGATION ---
-  function navTo(screenId) {
-    // স্ক্রিন লুকানো এবং দেখানোর লজিক
-    document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-    const targetScreen = document.getElementById(`screen-${screenId}`);
-    if (targetScreen) {
-      targetScreen.classList.remove('hidden');
-    }
+        // ------------------------------------------------------------------
 
-    // নেভিগেশন আইকন আপডেট
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    const navItem = document.getElementById(`nav-${screenId}`);
-    if (navItem) {
-      navItem.classList.add('active');
-    }
-
-    // মুভি লোড করার জন্য ফায়ারবেসকে কল করা
-    if (screenId === 'home' || screenId === 'list') {
-      console.log("Firebase is fetching movies...");
-    }
-  }
-
+        // --- APP STATE & NAVIGATION ---
+        function navTo(screenId) {
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            // Show target screen
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            
+            // Update Nav Icons
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${screenId}`).classList.add('active');
+            
+            if (screenId === 'list') {
+                loadMyList();
+            } else if (screenId === 'profile') {
+                loadProfile();
+            }
+        }
 
         // --- HOME SCREEN GENERATOR ---
         const rowCategories = [
@@ -498,7 +510,7 @@
                 const scrollBox = document.createElement('div');
                 scrollBox.className = 'row-scroll';
 
-                // Generate 8 empty cards per row
+                // Generate 8 empty cards per row (placeholder; replace with real data fetch if needed)
                 for(let i=0; i<8; i++) {
                     const card = document.createElement('div');
                     card.className = 'movie-card';
@@ -517,7 +529,7 @@
         let currentSlide = 0;
         function initBanner() {
             const container = document.getElementById('banner-slider');
-            // Create 3 placeholder slides
+            // Create 3 placeholder slides (replace with real data if needed)
             for(let i=0; i<3; i++) {
                 const slide = document.createElement('div');
                 slide.className = `banner-slide ${i === 0 ? 'active' : ''}`;
@@ -538,7 +550,7 @@
                 dot.className = `dot ${i === 0 ? 'active' : ''}`;
                 dotContainer.appendChild(dot);
             }
-            container.querySelector('.banner-placeholder').appendChild(dotContainer); // Append to last valid container logic
+            container.appendChild(dotContainer); // Fixed: append to container instead of placeholder
 
             // Auto-Slide Timer
             setInterval(() => {
@@ -556,7 +568,7 @@
         }
 
         // --- SEARCH LOGIC ---
-        // Bind tag clicks
+        // Bind tag clicks (placeholder; add real search if needed)
         document.querySelectorAll('.tag').forEach(tag => {
             tag.addEventListener('click', () => {
                 document.getElementById('search-tags-container').classList.add('hidden');
@@ -582,10 +594,120 @@
         function hideLogin() {
             document.getElementById('login-modal').classList.remove('visible');
         }
-        function performMockLogin() {
-            console.log("Connect to Google Auth Provider using firebaseConfig here.");
-            alert("This is a UI Skeleton. Connect Firebase in the code to enable real login.");
-            hideLogin();
+        function performLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log('Logged in:', result.user);
+                    hideLogin();
+                    // Reload relevant screens
+                    loadProfile();
+                    loadMyList();
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    alert('Login failed: ' + error.message);
+                });
+        }
+
+        // --- AUTH STATE LISTENER ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in
+                console.log('User signed in:', user);
+                // Update UI accordingly
+                document.getElementById('profile-guest-state').classList.add('hidden');
+                document.getElementById('profile-logged-in-state').classList.remove('hidden');
+                // Example: Update profile
+                loadProfile(user);
+                loadMyList(user);
+            } else {
+                // User is signed out
+                console.log('User signed out');
+                document.getElementById('profile-guest-state').classList.remove('hidden');
+                document.getElementById('profile-logged-in-state').classList.add('hidden');
+                document.getElementById('list-empty-state').classList.remove('hidden');
+                document.getElementById('list-content').classList.add('hidden');
+            }
+        });
+
+        // --- LOAD PROFILE ---
+        function loadProfile(user) {
+            if (!user) return;
+            const profileState = document.getElementById('profile-logged-in-state');
+            profileState.innerHTML = `
+                <div class="profile-avatar">${user.displayName ? user.displayName[0] : '?'}</div>
+                <div class="empty-title">${user.displayName || 'User'}</div>
+                <p class="text-sec">Email: ${user.email}</p>
+                <button class="btn btn-glass btn-full" onclick="auth.signOut()">Sign Out</button>
+            `;
+        }
+
+        // --- LOAD MY LIST (Assuming movies are stored in Firestore under users/{uid}/myList) ---
+        function loadMyList(user) {
+            const currentUser = user || auth.currentUser;
+            if (!currentUser) {
+                showLogin('To see your saved movies');
+                return;
+            }
+            document.getElementById('list-empty-state').classList.add('hidden');
+            document.getElementById('list-content').classList.remove('hidden');
+
+            const listContent = document.getElementById('list-content');
+            listContent.innerHTML = ''; // Clear previous
+
+            // Fetch from Firestore (assuming admin uploads to a 'movies' collection, and user saves references)
+            // For simplicity, assuming myList is a collection of movie IDs or docs
+            db.collection(`users/${currentUser.uid}/myList`)
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        listContent.innerHTML = '<p class="text-sec">No movies in your list yet.</p>';
+                    } else {
+                        const scrollBox = document.createElement('div');
+                        scrollBox.className = 'row-scroll';
+                        querySnapshot.forEach((doc) => {
+                            const movieData = doc.data();
+                            const card = document.createElement('div');
+                            card.className = 'movie-card';
+                            card.style.backgroundImage = movieData.poster ? `url(${movieData.poster})` : ''; // Assuming poster URL from admin upload
+                            card.onclick = () => openDetail(movieData); // Pass data if needed
+                            scrollBox.appendChild(card);
+                        });
+                        listContent.appendChild(scrollBox);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error fetching my list:', error);
+                });
+        }
+
+        // --- ADD TO MY LIST (Example function; adjust based on your admin/movie structure) ---
+        function addToMyList(movieId = 'placeholder') { // Pass real movieId from card
+            const user = auth.currentUser;
+            if (!user) {
+                showLogin('To add to My List');
+                return;
+            }
+            // Assuming movies are uploaded by admin to 'movies' collection, and we add reference to user's myList
+            db.collection(`users/${user.uid}/myList`).add({ movieId: movieId, addedAt: firebase.firestore.FieldValue.serverTimestamp() })
+                .then(() => {
+                    console.log('Added to my list');
+                    loadMyList(); // Refresh if on list screen
+                })
+                .catch((error) => {
+                    console.error('Error adding to list:', error);
+                });
+        }
+
+        // --- RATE MOVIE (Placeholder; implement as needed) ---
+        function rateMovie() {
+            const user = auth.currentUser;
+            if (!user) {
+                showLogin('To like this movie');
+                return;
+            }
+            alert('Rating functionality placeholder. Implement with Firestore.');
         }
 
         // --- INITIALIZATION ---
