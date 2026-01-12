@@ -438,24 +438,23 @@
 
     <!-- === JAVASCRIPT LOGIC === -->
     <script>
-        /* 
-         * ------------------------------------------------------------------
-         *  FIREBASE CONFIGURATION PLACEHOLDER (Ready for Backend)
-         * ------------------------------------------------------------------
-         *  To enable real backend features, Initialize Firebase App here.
-         *  
-         *  const firebaseConfig = {
-  apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
-  authDomain: "mymovieapp-b088c.firebaseapp.com",
-  projectId: "mymovieapp-b088c",
-  storageBucket: "mymovieapp-b088c.firebasestorage.app",
-  messagingSenderId: "243642474836",
-  appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
-};
-         * 
-         *  // firebase.initializeApp(firebaseConfig);
-         * ------------------------------------------------------------------
-         */
+          // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+    authDomain: "mymovieapp-b088c.firebaseapp.com",
+    projectId: "mymovieapp-b088c",
+    storageBucket: "mymovieapp-b088c.firebasestorage.app",
+    messagingSenderId: "243642474836",
+    appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+  };
+
+  // Initialize Firebase
+  if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+  } else {
+      firebase.app(); // if already initialized, use that one
+  }
+
 
         // --- APP STATE & NAVIGATION ---
         function navTo(screenId) {
