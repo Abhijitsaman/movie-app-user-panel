@@ -179,9 +179,9 @@
             border-radius: var(--radius);
             position: relative;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .movie-card:hover { transform: scale(1.05); z-index: 2; }
+        .movie-card:hover { transform: scale(1.05); z-index: 2; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         
         /* Specific Aspect Ratios */
         .row-trending .movie-card { min-width: 140px; height: 200px; } /* Larger for Trending */
@@ -306,55 +306,78 @@
         }
         .login-backdrop.visible .login-sheet { transform: translateY(0); }
 
+        /* Loading State */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
-    <!-- Firebase SDK Scripts (using compat version for initializeApp) -->
+    <!-- Firebase SDK Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script> <!-- Added for potential movie data fetching -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script> <!-- Added for potential movie uploads/images -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading Movies...</p>
+    </div>
 
     <!-- === SCREEN 1: HOME === -->
-    <div id="screen-home" class="screen">
+    <div id="screen-home" class="screen hidden">
         <header class="header">
-            <div class="app-logo">NETSTREAM</div>
+            <div class="app-logo">STREAMFLIX</div>
             <div class="nav-icon icon-search" style="background: white;" onclick="navTo('search')"></div>
         </header>
 
         <!-- Auto Banner -->
         <div class="banner-container" id="banner-slider">
-            <!-- JS will populate placeholders here -->
+            <!-- JS will populate here -->
         </div>
 
         <!-- Content Rows -->
         <div id="home-content">
-            <!-- JS will populate rows -->
+            <!-- JS will populate rows dynamically -->
         </div>
     </div>
 
     <!-- === SCREEN 2: SEARCH === -->
     <div id="screen-search" class="screen hidden">
         <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search movies, series, or genres">
+            <input type="text" class="search-input" placeholder="Search movies, series, or genres" id="search-input">
             
             <div id="search-tags-container">
                 <p class="row-title" style="margin-bottom: 15px;">Browse Categories</p>
-                <div class="genre-tags">
-                    <span class="tag">Action</span>
-                    <span class="tag">Drama</span>
-                    <span class="tag">Comedy</span>
-                    <span class="tag">Horror</span>
-                    <span class="tag">Romance</span>
-                    <span class="tag">Thriller</span>
-                    <span class="tag">Sci-Fi</span>
-                    <span class="tag">Animation</span>
-                    <span class="tag">Kids</span>
+                <div class="genre-tags" id="genre-tags">
+                    <!-- Dynamic tags will be added -->
                 </div>
             </div>
 
-            <div id="search-results" class="hidden" style="margin-top: 40px; text-align: center;">
-                <p class="text-sec">Movies will appear here</p>
+            <div id="search-results" style="margin-top: 40px; text-align: center;">
+                <div id="search-results-content"></div>
             </div>
         </div>
     </div>
@@ -368,7 +391,10 @@
             <button class="btn btn-primary" onclick="showLogin('To save your list')">Continue with Google to save movies</button>
         </div>
         <div id="list-content" class="hidden">
-            <!-- JS will populate user's list here -->
+            <div style="padding: 20px;">
+                <h2 style="margin-bottom: 20px;">My List</h2>
+                <div id="my-list-movies" class="row-scroll"></div>
+            </div>
         </div>
     </div>
 
@@ -390,14 +416,14 @@
         <div class="detail-close" onclick="closeDetail()">✕</div>
         <div class="detail-header" id="detail-bg"></div>
         <div class="detail-content">
-            <div class="detail-title">Placeholder Title</div>
-            <div class="detail-meta">2024 • 2h 15m • Action</div>
+            <div class="detail-title" id="detail-title">Placeholder Title</div>
+            <div class="detail-meta" id="detail-meta">2024 • 2h 15m • Action</div>
             
-            <button class="btn btn-secondary btn-full" style="margin-bottom: 20px;">Play</button>
-            <button class="btn btn-glass btn-full" style="margin-bottom: 20px;">Download</button>
+            <button class="btn btn-secondary btn-full" id="play-btn" style="margin-bottom: 20px;">Play</button>
+            <button class="btn btn-glass btn-full" style="margin-bottom: 20px;" onclick="addToMyList()">Add to My List</button>
             
-            <div class="detail-desc">
-                This is a UI placeholder for the movie description. Real content, API data, and actual synopsis text will be injected here once the backend is connected.
+            <div class="detail-desc" id="detail-desc">
+                This is a UI placeholder for the movie description.
             </div>
 
             <div class="action-row" style="justify-content: space-around;">
@@ -449,581 +475,864 @@
 
     <!-- === JAVASCRIPT LOGIC === -->
     <script>
- 
-// ============================================
-// FIREBASE CONFIGURATION
-// ============================================
-const firebaseConfig = {
-  apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
-  authDomain: "mymovieapp-b088c.firebaseapp.com",
-  projectId: "mymovieapp-b088c",
-  storageBucket: "mymovieapp-b088c.firebasestorage.app",
-  messagingSenderId: "243642474836",
-  appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
-};
+        // ------------------------------------------------------------------
+        //  FIREBASE CONFIGURATION
+        // ------------------------------------------------------------------
+        const firebaseConfig = {
+          apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+          authDomain: "mymovieapp-b088c.firebaseapp.com",
+          projectId: "mymovieapp-b088c",
+          storageBucket: "mymovieapp-b088c.firebasestorage.app",
+          messagingSenderId: "243642474836",
+          appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+        };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-// ============================================
-// APP STATE & NAVIGATION
-// ============================================
-function navTo(screenId) {
-    // Hide all screens
-    document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-    // Show target screen
-    document.getElementById(`screen-${screenId}`).classList.remove('hidden');
-    
-    // Update Nav Icons
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.getElementById(`nav-${screenId}`).classList.add('active');
-    
-    if (screenId === 'list') {
-        loadMyList();
-    } else if (screenId === 'profile') {
-        loadProfile();
-    }
-    
-    // Load movies when home screen is opened
-    if (screenId === 'home') {
-        loadMoviesFromFirestore();
-    }
-}
-
-// ============================================
-// LOAD MOVIES FROM FIRESTORE - NEW FUNCTION
-// ============================================
-let allMovies = [];
-
-async function loadMoviesFromFirestore() {
-    try {
-        console.log('Loading movies from Firestore...');
-        
-        // Firestore থেকে movies collection লোড করো
-        const snapshot = await db.collection('movies').get();
-        
-        if (snapshot.empty) {
-            console.log('No movies found in Firestore');
-            showEmptyHomeState();
-            return;
-        }
-        
-        console.log(`Found ${snapshot.size} movies`);
-        
-        // Clear existing movies
-        allMovies = [];
-        
-        // Process movies
-        snapshot.forEach((doc) => {
-            const movie = doc.data();
-            movie.id = doc.id;
-            allMovies.push(movie);
-        });
-        
-        // Update UI with movies
-        updateHomeWithMovies(allMovies);
-        
-    } catch (error) {
-        console.error('Error loading movies from Firestore:', error);
-        showToast('Failed to load movies', 'error');
-    }
-}
-
-function updateHomeWithMovies(movies) {
-    // 1. Update Banner
-    updateBannerWithMovies(movies.slice(0, 3));
-    
-    // 2. Update Home Content
-    updateHomeContentWithMovies(movies);
-}
-
-function updateBannerWithMovies(bannerMovies) {
-    const bannerContainer = document.getElementById('banner-slider');
-    bannerContainer.innerHTML = '';
-    
-    bannerMovies.forEach((movie, index) => {
-        const slide = document.createElement('div');
-        slide.className = `banner-slide ${index === 0 ? 'active' : ''}`;
-        slide.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('${movie.posterUrl || ''}')`;
-        slide.style.backgroundSize = 'cover';
-        slide.style.backgroundPosition = 'center';
-        
-        slide.innerHTML = `
-            <div class="banner-placeholder">
-                <div class="banner-text">${movie.title || 'Movie Title'}</div>
-                <div class="text-sec">${movie.genre || 'Movie'} • ${movie.year || '2024'}</div>
-                <button class="btn btn-primary" style="margin-top: 15px;" onclick="openMovieDetail('${movie.id}')">Play Now</button>
-            </div>
-        `;
-        bannerContainer.appendChild(slide);
-    });
-    
-    // Add dots if there are movies
-    if (bannerMovies.length > 0) {
-        const dotContainer = document.createElement('div');
-        dotContainer.className = 'banner-dots';
-        bannerMovies.forEach((_, i) => {
-            const dot = document.createElement('div');
-            dot.className = `dot ${i === 0 ? 'active' : ''}`;
-            dotContainer.appendChild(dot);
-        });
-        bannerContainer.appendChild(dotContainer);
-        
-        // Auto-slide functionality
+        // ------------------------------------------------------------------
+        //  GLOBAL VARIABLES
+        // ------------------------------------------------------------------
+        let allMovies = [];
+        let currentUser = null;
+        let currentScreen = 'home';
         let currentSlide = 0;
-        const slides = bannerContainer.querySelectorAll('.banner-slide');
-        const dots = bannerContainer.querySelectorAll('.dot');
-        
-        // Clear any existing interval
-        if (window.bannerInterval) clearInterval(window.bannerInterval);
-        
-        window.bannerInterval = setInterval(() => {
+        let bannerInterval;
+
+        // ------------------------------------------------------------------
+        //  INITIALIZATION
+        // ------------------------------------------------------------------
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('App starting...');
+            
+            // Hide loading screen after a moment
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+            }, 1000);
+            
+            // Setup auth listener
+            setupAuth();
+            
+            // Load movies from Firestore
+            await loadMovies();
+            
+            // Initialize home page
+            initHomePage();
+            
+            // Start banner rotation
+            startBannerRotation();
+            
+            console.log('App initialized successfully');
+        });
+
+        // ------------------------------------------------------------------
+        //  FIREBASE AUTH SETUP
+        // ------------------------------------------------------------------
+        function setupAuth() {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    console.log('User signed in:', user.email);
+                    updateProfileUI(user);
+                    loadUserList();
+                } else {
+                    console.log('User signed out');
+                    showGuestProfile();
+                }
+            });
+        }
+
+        // ------------------------------------------------------------------
+        //  MOVIE DATA MANAGEMENT
+        // ------------------------------------------------------------------
+        async function loadMovies() {
+            try {
+                console.log('Loading movies from Firestore...');
+                
+                const snapshot = await db.collection('movies').get();
+                
+                if (snapshot.empty) {
+                    console.log('No movies found in database');
+                    allMovies = [];
+                    return;
+                }
+                
+                allMovies = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const movie = {
+                        id: doc.id,
+                        title: data.title || 'Untitled Movie',
+                        genre: data.genre || 'General',
+                        description: data.description || 'No description available.',
+                        posterUrl: data.posterUrl || '',
+                        bannerUrl: data.bannerUrl || data.posterUrl || '',
+                        movieUrl: data.movieUrl || '',
+                        year: data.year || new Date().getFullYear(),
+                        duration: data.duration || 120,
+                        views: data.views || 0,
+                        rating: data.rating || 0,
+                        ratingCount: data.ratingCount || 0,
+                        uploadDate: data.uploadDate || Date.now(),
+                        uploadedBy: data.uploadedBy || 'Admin'
+                    };
+                    allMovies.push(movie);
+                });
+                
+                console.log(`Loaded ${allMovies.length} movies from Firestore`);
+                
+                // Update search tags
+                updateSearchTags();
+                
+            } catch (error) {
+                console.error('Error loading movies:', error);
+                showError('Failed to load movies. Please check your connection.');
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  CATEGORY ORGANIZATION
+        // ------------------------------------------------------------------
+        function organizeMoviesByCategory() {
+            const categories = {};
+            
+            // Define category structure
+            const categoryTemplates = [
+                "Trending Now",
+                "New Releases", 
+                "Popular Movies",
+                "Action Movies",
+                "Comedy Movies",
+                "Drama Movies",
+                "Romance Movies",
+                "Horror Movies",
+                "Sci-Fi Movies",
+                "Thriller Movies",
+                "Animation Movies"
+            ];
+            
+            // Initialize all categories
+            categoryTemplates.forEach(cat => {
+                categories[cat] = [];
+            });
+            
+            // Organize movies by their actual genres
+            allMovies.forEach(movie => {
+                const genre = movie.genre.toLowerCase();
+                
+                // Add to specific genre category
+                if (genre.includes('action')) {
+                    categories["Action Movies"].push(movie);
+                }
+                if (genre.includes('comedy')) {
+                    categories["Comedy Movies"].push(movie);
+                }
+                if (genre.includes('drama')) {
+                    categories["Drama Movies"].push(movie);
+                }
+                if (genre.includes('romance')) {
+                    categories["Romance Movies"].push(movie);
+                }
+                if (genre.includes('horror')) {
+                    categories["Horror Movies"].push(movie);
+                }
+                if (genre.includes('sci-fi') || genre.includes('scifi')) {
+                    categories["Sci-Fi Movies"].push(movie);
+                }
+                if (genre.includes('thriller')) {
+                    categories["Thriller Movies"].push(movie);
+                }
+                if (genre.includes('animation') || genre.includes('animated')) {
+                    categories["Animation Movies"].push(movie);
+                }
+                
+                // Add to general categories
+                categories["Trending Now"].push(movie);
+                categories["Popular Movies"].push(movie);
+                
+                // Add to New Releases if within 30 days
+                const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                if (movie.uploadDate > thirtyDaysAgo) {
+                    categories["New Releases"].push(movie);
+                }
+            });
+            
+            // Remove duplicates and shuffle
+            Object.keys(categories).forEach(category => {
+                // Remove duplicates by ID
+                const uniqueMovies = [];
+                const seenIds = new Set();
+                
+                categories[category].forEach(movie => {
+                    if (!seenIds.has(movie.id)) {
+                        seenIds.add(movie.id);
+                        uniqueMovies.push(movie);
+                    }
+                });
+                
+                // Shuffle for variety
+                uniqueMovies.sort(() => Math.random() - 0.5);
+                
+                // Sort trending by views
+                if (category === "Trending Now") {
+                    uniqueMovies.sort((a, b) => (b.views || 0) - (a.views || 0));
+                }
+                
+                // Sort new releases by date
+                if (category === "New Releases") {
+                    uniqueMovies.sort((a, b) => (b.uploadDate || 0) - (a.uploadDate || 0));
+                }
+                
+                categories[category] = uniqueMovies.slice(0, 10); // Max 10 per category
+            });
+            
+            return categories;
+        }
+
+        // ------------------------------------------------------------------
+        //  HOME PAGE INITIALIZATION
+        // ------------------------------------------------------------------
+        function initHomePage() {
+            const homeContent = document.getElementById('home-content');
+            if (!homeContent) return;
+            
+            // Clear existing content
+            homeContent.innerHTML = '';
+            
+            // Get organized movies
+            const categories = organizeMoviesByCategory();
+            
+            // Create rows for each category that has movies
+            Object.keys(categories).forEach(categoryName => {
+                const movies = categories[categoryName];
+                
+                if (movies.length === 0) return;
+                
+                const section = document.createElement('div');
+                section.className = 'content-section';
+                
+                // Special styling for Trending
+                if (categoryName === "Trending Now") {
+                    section.classList.add('row-trending');
+                }
+                
+                const title = document.createElement('div');
+                title.className = 'row-title';
+                title.textContent = categoryName;
+                
+                const scrollBox = document.createElement('div');
+                scrollBox.className = 'row-scroll';
+                
+                // Add movie cards
+                movies.forEach(movie => {
+                    const card = createMovieCard(movie);
+                    scrollBox.appendChild(card);
+                });
+                
+                section.appendChild(title);
+                section.appendChild(scrollBox);
+                homeContent.appendChild(section);
+            });
+            
+            // Update banner
+            updateBanner();
+            
+            // If no movies, show placeholder
+            if (allMovies.length === 0) {
+                homeContent.innerHTML = `
+                    <div style="text-align: center; padding: 80px 20px;">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">🎬</div>
+                        <h3 style="color: white; margin-bottom: 10px;">Welcome to StreamFlix</h3>
+                        <p style="color: #888; margin-bottom: 30px;">Movies will appear here once uploaded by admin.</p>
+                        <button class="btn btn-primary" onclick="refreshMovies()">Refresh</button>
+                    </div>
+                `;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  MOVIE CARD CREATION
+        // ------------------------------------------------------------------
+        function createMovieCard(movie) {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            card.dataset.movieId = movie.id;
+            
+            // Set background image if available
+            if (movie.posterUrl) {
+                card.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8)), url('${movie.posterUrl}')`;
+                card.style.backgroundSize = 'cover';
+                card.style.backgroundPosition = 'center';
+            } else {
+                // Genre-based color if no poster
+                const genreColor = getGenreColor(movie.genre);
+                card.style.backgroundColor = genreColor;
+                card.style.display = 'flex';
+                card.style.alignItems = 'center';
+                card.style.justifyContent = 'center';
+                card.innerHTML = `<span style="color: white; text-align: center; padding: 10px; font-size: 0.9rem;">${movie.title}</span>`;
+            }
+            
+            // Add hover effect
+            card.onmouseenter = function() {
+                this.style.transform = 'scale(1.05)';
+                this.style.zIndex = '2';
+                this.style.boxShadow = '0 10px 20px rgba(0,0,0,0.5)';
+            };
+            
+            card.onmouseleave = function() {
+                this.style.transform = 'scale(1)';
+                this.style.zIndex = '1';
+                this.style.boxShadow = 'none';
+            };
+            
+            // Click to open details
+            card.onclick = () => openMovieDetail(movie);
+            
+            return card;
+        }
+
+        function getGenreColor(genre) {
+            const colors = {
+                'action': '#e50914',
+                'comedy': '#f39c12',
+                'drama': '#3498db',
+                'romance': '#e84393',
+                'horror': '#8e44ad',
+                'sci-fi': '#00cec9',
+                'thriller': '#e74c3c',
+                'animation': '#1abc9c',
+                'adventure': '#e67e22',
+                'fantasy': '#9b59b6'
+            };
+            
+            genre = genre.toLowerCase();
+            for (const [key, color] of Object.entries(colors)) {
+                if (genre.includes(key)) {
+                    return color;
+                }
+            }
+            return '#2f2f2f';
+        }
+
+        // ------------------------------------------------------------------
+        //  BANNER MANAGEMENT
+        // ------------------------------------------------------------------
+        function updateBanner() {
+            const bannerSlider = document.getElementById('banner-slider');
+            if (!bannerSlider || allMovies.length === 0) return;
+            
+            // Get top 3 movies for banner (highest rated or most viewed)
+            const featuredMovies = [...allMovies]
+                .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+                .slice(0, 3);
+            
+            bannerSlider.innerHTML = '';
+            
+            featuredMovies.forEach((movie, index) => {
+                const slide = document.createElement('div');
+                slide.className = `banner-slide ${index === 0 ? 'active' : ''}`;
+                
+                // Set background
+                const bgImage = movie.bannerUrl || movie.posterUrl;
+                if (bgImage) {
+                    slide.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7)), url('${bgImage}')`;
+                    slide.style.backgroundSize = 'cover';
+                    slide.style.backgroundPosition = 'center';
+                }
+                
+                slide.innerHTML = `
+                    <div class="banner-placeholder" style="background: transparent;">
+                        <div class="banner-text">${movie.title}</div>
+                        <div class="text-sec">${movie.genre} • ${movie.year}</div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="openMovieDetail(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                                ▶ Play
+                            </button>
+                            <button class="btn btn-glass" onclick="addToMyList('${movie.id}')">
+                                + My List
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                bannerSlider.appendChild(slide);
+            });
+            
+            // Add dots
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'banner-dots';
+            featuredMovies.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = `dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => switchBannerSlide(index);
+                dotsContainer.appendChild(dot);
+            });
+            bannerSlider.appendChild(dotsContainer);
+        }
+
+        function startBannerRotation() {
+            if (bannerInterval) clearInterval(bannerInterval);
+            
+            bannerInterval = setInterval(() => {
+                const slides = document.querySelectorAll('.banner-slide');
+                const dots = document.querySelectorAll('.dot');
+                
+                if (slides.length === 0) return;
+                
+                slides[currentSlide].classList.remove('active');
+                dots[currentSlide].classList.remove('active');
+                
+                currentSlide = (currentSlide + 1) % slides.length;
+                
+                slides[currentSlide].classList.add('active');
+                dots[currentSlide].classList.add('active');
+            }, 5000);
+        }
+
+        function switchBannerSlide(index) {
+            const slides = document.querySelectorAll('.banner-slide');
+            const dots = document.querySelectorAll('.dot');
+            
+            if (slides.length === 0) return;
+            
             slides[currentSlide].classList.remove('active');
             dots[currentSlide].classList.remove('active');
             
-            currentSlide = (currentSlide + 1) % slides.length;
+            currentSlide = index;
             
             slides[currentSlide].classList.add('active');
             dots[currentSlide].classList.add('active');
-        }, 5000);
-    }
-}
-
-function updateHomeContentWithMovies(movies) {
-    const homeContent = document.getElementById('home-content');
-    homeContent.innerHTML = '';
-    
-    // Create different categories
-    const categories = {
-        "Trending Now": movies.slice(0, 8),
-        "New Releases": movies.slice(0, 8),
-        "Popular Movies": movies.slice(0, 10),
-        "Action Movies": movies.filter(m => m.genre && m.genre.includes('Action')).slice(0, 8),
-        "Drama Movies": movies.filter(m => m.genre && m.genre.includes('Drama')).slice(0, 8),
-        "Comedy Movies": movies.filter(m => m.genre && m.genre.includes('Comedy')).slice(0, 8)
-    };
-    
-    // Create rows for each category
-    Object.entries(categories).forEach(([category, categoryMovies]) => {
-        if (categoryMovies.length === 0) return;
-        
-        const section = document.createElement('div');
-        section.className = 'content-section';
-        if (category === "Trending Now") section.classList.add('row-trending');
-        
-        const title = document.createElement('div');
-        title.className = 'row-title';
-        title.textContent = category;
-        
-        const scrollBox = document.createElement('div');
-        scrollBox.className = 'row-scroll';
-        
-        categoryMovies.forEach(movie => {
-            const card = document.createElement('div');
-            card.className = 'movie-card';
-            card.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
-            card.style.backgroundSize = 'cover';
-            card.style.backgroundPosition = 'center';
-            card.onclick = () => openMovieDetail(movie.id);
             
-            // Add title overlay on hover
-            card.innerHTML = `
-                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 8px; display: none;">
-                    <div style="font-size: 12px; font-weight: bold;">${movie.title || 'Movie'}</div>
-                    <div style="font-size: 10px; color: #aaa;">${movie.genre || ''}</div>
+            // Reset timer
+            if (bannerInterval) {
+                clearInterval(bannerInterval);
+                startBannerRotation();
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  SEARCH FUNCTIONALITY
+        // ------------------------------------------------------------------
+        function updateSearchTags() {
+            const tagsContainer = document.getElementById('genre-tags');
+            if (!tagsContainer) return;
+            
+            // Get unique genres
+            const genres = new Set();
+            allMovies.forEach(movie => {
+                if (movie.genre) {
+                    genres.add(movie.genre);
+                }
+            });
+            
+            // Clear and add tags
+            tagsContainer.innerHTML = '';
+            genres.forEach(genre => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = genre;
+                tag.onclick = () => searchByGenre(genre);
+                tagsContainer.appendChild(tag);
+            });
+            
+            // Add popular tags
+            const popularTags = ['Action', 'Comedy', 'Drama', 'Romance', 'Horror', 'Sci-Fi'];
+            popularTags.forEach(tagName => {
+                if (!genres.has(tagName)) {
+                    const tag = document.createElement('span');
+                    tag.className = 'tag';
+                    tag.textContent = tagName;
+                    tag.onclick = () => searchByGenre(tagName);
+                    tagsContainer.appendChild(tag);
+                }
+            });
+        }
+
+        function searchByGenre(genre) {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = genre;
+            }
+            
+            const filteredMovies = allMovies.filter(movie => 
+                movie.genre.toLowerCase().includes(genre.toLowerCase()) ||
+                movie.title.toLowerCase().includes(genre.toLowerCase())
+            );
+            
+            displaySearchResults(filteredMovies, `Results for "${genre}"`);
+        }
+
+        // Setup search input
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.toLowerCase().trim();
+                    
+                    if (query.length === 0) {
+                        clearSearchResults();
+                        return;
+                    }
+                    
+                    const results = allMovies.filter(movie => 
+                        movie.title.toLowerCase().includes(query) ||
+                        movie.genre.toLowerCase().includes(query) ||
+                        (movie.description && movie.description.toLowerCase().includes(query))
+                    );
+                    
+                    displaySearchResults(results, `Results for "${query}"`);
+                });
+            }
+        });
+
+        function displaySearchResults(movies, title) {
+            const resultsContainer = document.getElementById('search-results-content');
+            if (!resultsContainer) return;
+            
+            if (movies.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 2rem; margin-bottom: 20px;">🔍</div>
+                        <h3 style="color: white;">No Movies Found</h3>
+                        <p style="color: #888;">Try a different search term</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            resultsContainer.innerHTML = `
+                <h3 style="color: white; margin-bottom: 20px;">${title} (${movies.length})</h3>
+                <div class="row-scroll" style="flex-wrap: wrap; justify-content: center; gap: 15px;">
+                    ${movies.map(movie => `
+                        <div class="movie-card" onclick="openMovieDetail(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
+                             style="min-width: 150px; height: 200px; background-image: url('${movie.posterUrl || ''}'); background-size: cover;">
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function clearSearchResults() {
+            const resultsContainer = document.getElementById('search-results-content');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '<p class="text-sec">Movies will appear here when you search</p>';
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  MOVIE DETAILS
+        // ------------------------------------------------------------------
+        function openMovieDetail(movie) {
+            const overlay = document.getElementById('detail-overlay');
+            const title = document.getElementById('detail-title');
+            const meta = document.getElementById('detail-meta');
+            const desc = document.getElementById('detail-desc');
+            const bg = document.getElementById('detail-bg');
+            const playBtn = document.getElementById('play-btn');
+            
+            // Update content
+            title.textContent = movie.title;
+            meta.textContent = `${movie.year} • ${formatDuration(movie.duration)} • ${movie.genre}`;
+            desc.textContent = movie.description;
+            
+            // Set background
+            if (movie.bannerUrl) {
+                bg.style.backgroundImage = `url('${movie.bannerUrl}')`;
+            } else if (movie.posterUrl) {
+                bg.style.backgroundImage = `url('${movie.posterUrl}')`;
+            }
+            bg.style.backgroundSize = 'cover';
+            bg.style.backgroundPosition = 'center';
+            
+            // Setup play button
+            if (movie.movieUrl) {
+                playBtn.onclick = () => window.open(movie.movieUrl, '_blank');
+                playBtn.disabled = false;
+                playBtn.textContent = '▶ Play Now';
+            } else {
+                playBtn.disabled = true;
+                playBtn.textContent = 'Not Available';
+            }
+            
+            // Store current movie for actions
+            window.currentMovie = movie;
+            
+            // Show overlay
+            overlay.classList.add('open');
+            
+            // Increment view count
+            incrementViewCount(movie.id);
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('open');
+            window.currentMovie = null;
+        }
+
+        function formatDuration(minutes) {
+            if (!minutes) return 'N/A';
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        }
+
+        async function incrementViewCount(movieId) {
+            try {
+                await db.collection('movies').doc(movieId).update({
+                    views: firebase.firestore.FieldValue.increment(1)
+                });
+            } catch (error) {
+                console.error('Error updating view count:', error);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  MY LIST MANAGEMENT
+        // ------------------------------------------------------------------
+        async function addToMyList(movieId = null) {
+            const movie = movieId ? allMovies.find(m => m.id === movieId) : window.currentMovie;
+            
+            if (!movie) {
+                showLogin('To add to My List');
+                return;
+            }
+            
+            if (!currentUser) {
+                showLogin('To save movies to your list');
+                return;
+            }
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).collection('myList').doc(movie.id).set({
+                    movieId: movie.id,
+                    title: movie.title,
+                    posterUrl: movie.posterUrl,
+                    addedAt: Date.now()
+                });
+                
+                showToast('Added to My List');
+                loadUserList();
+                
+            } catch (error) {
+                console.error('Error adding to list:', error);
+                showError('Failed to add to list');
+            }
+        }
+
+        async function loadUserList() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await db.collection('users').doc(currentUser.uid).collection('myList').get();
+                
+                const listContainer = document.getElementById('my-list-movies');
+                const emptyState = document.getElementById('list-empty-state');
+                const listContent = document.getElementById('list-content');
+                
+                if (snapshot.empty) {
+                    emptyState.classList.remove('hidden');
+                    listContent.classList.add('hidden');
+                    return;
+                }
+                
+                emptyState.classList.add('hidden');
+                listContent.classList.remove('hidden');
+                
+                listContainer.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const item = doc.data();
+                    const movie = allMovies.find(m => m.id === item.movieId);
+                    
+                    if (movie) {
+                        const card = createMovieCard(movie);
+                        listContainer.appendChild(card);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading user list:', error);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  USER PROFILE
+        // ------------------------------------------------------------------
+        function updateProfileUI(user) {
+            const guestState = document.getElementById('profile-guest-state');
+            const loggedInState = document.getElementById('profile-logged-in-state');
+            
+            if (!guestState || !loggedInState) return;
+            
+            guestState.classList.add('hidden');
+            loggedInState.classList.remove('hidden');
+            
+            loggedInState.innerHTML = `
+                <div style="padding: 40px 20px; text-align: center;">
+                    <div class="profile-avatar" style="background: linear-gradient(45deg, #e50914, #f39c12);">
+                        ${user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="empty-title">${user.displayName || user.email}</div>
+                    <p class="text-sec" style="margin-bottom: 30px;">${user.email}</p>
+                    
+                    <div style="background: #222; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">My Stats</h4>
+                        <p style="color: #888;">Movies in list: <span id="list-count">0</span></p>
+                    </div>
+                    
+                    <button class="btn btn-glass btn-full" onclick="auth.signOut()">Sign Out</button>
                 </div>
             `;
             
-            card.onmouseenter = function() {
-                this.querySelector('div').style.display = 'block';
-            };
-            card.onmouseleave = function() {
-                this.querySelector('div').style.display = 'none';
-            };
+            // Load list count
+            updateListCount();
+        }
+
+        function showGuestProfile() {
+            const guestState = document.getElementById('profile-guest-state');
+            const loggedInState = document.getElementById('profile-logged-in-state');
             
-            scrollBox.appendChild(card);
-        });
-        
-        section.appendChild(title);
-        section.appendChild(scrollBox);
-        homeContent.appendChild(section);
-    });
-}
-
-function showEmptyHomeState() {
-    const homeContent = document.getElementById('home-content');
-    homeContent.innerHTML = `
-        <div class="empty-state" style="height: 50vh;">
-            <div class="empty-icon"></div>
-            <div class="empty-title">No Movies Available</div>
-            <p class="text-sec">Movies will appear here once uploaded by admin.</p>
-        </div>
-    `;
-}
-
-// ============================================
-// MOVIE DETAIL FUNCTIONS
-// ============================================
-async function openMovieDetail(movieId) {
-    try {
-        console.log('Opening movie detail for:', movieId);
-        
-        const doc = await db.collection('movies').doc(movieId).get();
-        
-        if (!doc.exists) {
-            showToast('Movie not found', 'error');
-            return;
+            if (guestState) guestState.classList.remove('hidden');
+            if (loggedInState) loggedInState.classList.add('hidden');
         }
-        
-        const movie = doc.data();
-        
-        // Update detail overlay
-        document.querySelector('.detail-title').textContent = movie.title || 'Movie';
-        document.querySelector('.detail-meta').textContent = 
-            `${movie.year || '2024'} • ${movie.duration ? movie.duration + 'm' : '2h'} • ${movie.genre || 'Movie'}`;
-        document.querySelector('.detail-desc').textContent = movie.description || 'No description available.';
-        
-        // Update background
-        const detailBg = document.getElementById('detail-bg');
-        detailBg.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
-        detailBg.style.backgroundSize = 'cover';
-        detailBg.style.backgroundPosition = 'center';
-        
-        // Update play button to open movie URL
-        const playBtn = document.querySelector('.btn-secondary');
-        playBtn.onclick = function() {
-            if (movie.movieUrl) {
-                window.open(movie.movieUrl, '_blank');
-            } else {
-                showToast('No video URL available', 'warning');
+
+        async function updateListCount() {
+            if (!currentUser) return;
+            
+            try {
+                const snapshot = await db.collection('users').doc(currentUser.uid).collection('myList').get();
+                const countElement = document.getElementById('list-count');
+                if (countElement) {
+                    countElement.textContent = snapshot.size;
+                }
+            } catch (error) {
+                console.error('Error updating list count:', error);
             }
-        };
-        
-        // Update download button
-        const downloadBtn = document.querySelector('.btn-glass');
-        downloadBtn.onclick = function() {
-            if (movie.downloadUrl) {
-                window.open(movie.downloadUrl, '_blank');
-            } else {
-                showToast('No download URL available', 'warning');
+        }
+
+        // ------------------------------------------------------------------
+        //  NAVIGATION
+        // ------------------------------------------------------------------
+        function navTo(screenId) {
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            
+            // Show target screen
+            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+            
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${screenId}`).classList.add('active');
+            
+            // Update current screen
+            currentScreen = screenId;
+            
+            // Screen-specific actions
+            if (screenId === 'list') {
+                loadUserList();
+            } else if (screenId === 'search') {
+                clearSearchResults();
             }
-        };
-        
-        // Update My List button
-        document.querySelector('.action-col[onclick="addToMyList()"]').onclick = function() {
-            addToMyList(movieId);
-        };
-        
-        // Show overlay
-        document.getElementById('detail-overlay').classList.add('open');
-        
-    } catch (error) {
-        console.error('Error loading movie details:', error);
-        showToast('Failed to load movie details', 'error');
-    }
-}
-
-function closeDetail() {
-    document.getElementById('detail-overlay').classList.remove('open');
-}
-
-// ============================================
-// SEARCH FUNCTIONALITY
-// ============================================
-document.querySelectorAll('.tag').forEach(tag => {
-    tag.addEventListener('click', function() {
-        const genre = this.textContent;
-        document.getElementById('search-tags-container').classList.add('hidden');
-        
-        const searchResults = document.getElementById('search-results');
-        searchResults.classList.remove('hidden');
-        searchResults.innerHTML = `
-            <p class="row-title">Search Results: ${genre}</p>
-            <div class="movies-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
-                ${allMovies.filter(movie => movie.genre && movie.genre.includes(genre))
-                    .map(movie => `
-                        <div class="movie-card" style="height: 200px;" onclick="openMovieDetail('${movie.id}')">
-                            <div style="width: 100%; height: 100%; background-image: url('${movie.posterUrl || ''}'); background-size: cover; background-position: center;"></div>
-                        </div>
-                    `).join('') || '<p class="text-sec">No movies found in this genre.</p>'}
-            </div>
-        `;
-    });
-});
-
-// Search input functionality
-document.querySelector('.search-input').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    
-    if (searchTerm.length < 2) {
-        document.getElementById('search-tags-container').classList.remove('hidden');
-        document.getElementById('search-results').classList.add('hidden');
-        return;
-    }
-    
-    document.getElementById('search-tags-container').classList.add('hidden');
-    
-    const searchResults = document.getElementById('search-results');
-    searchResults.classList.remove('hidden');
-    
-    const filteredMovies = allMovies.filter(movie => 
-        (movie.title && movie.title.toLowerCase().includes(searchTerm)) ||
-        (movie.description && movie.description.toLowerCase().includes(searchTerm)) ||
-        (movie.genre && movie.genre.toLowerCase().includes(searchTerm))
-    );
-    
-    searchResults.innerHTML = `
-        <p class="row-title">Search Results for "${searchTerm}"</p>
-        <div class="movies-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
-            ${filteredMovies.map(movie => `
-                <div class="movie-card" style="height: 200px;" onclick="openMovieDetail('${movie.id}')">
-                    <div style="width: 100%; height: 100%; background-image: url('${movie.posterUrl || ''}'); background-size: cover; background-position: center;"></div>
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 8px;">
-                        <div style="font-size: 12px; font-weight: bold;">${movie.title || 'Movie'}</div>
-                        <div style="font-size: 10px; color: #aaa;">${movie.genre || ''}</div>
-                    </div>
-                </div>
-            `).join('') || '<p class="text-sec">No movies found matching your search.</p>'}
-        </div>
-    `;
-});
-
-// ============================================
-// AUTHENTICATION FUNCTIONS
-// ============================================
-function showLogin(msg) {
-    const modal = document.getElementById('login-modal');
-    const msgBox = document.getElementById('login-msg');
-    if (msg) msgBox.innerText = msg;
-    modal.classList.add('visible');
-}
-
-function hideLogin() {
-    document.getElementById('login-modal').classList.remove('visible');
-}
-
-function performLogin() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-        .then((result) => {
-            console.log('Logged in:', result.user);
-            hideLogin();
-            loadProfile();
-            loadMyList();
-            showToast('Login successful!', 'success');
-        })
-        .catch((error) => {
-            console.error('Login error:', error);
-            showToast('Login failed: ' + error.message, 'error');
-        });
-}
-
-// Auth state listener
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        console.log('User signed in:', user.email);
-        document.getElementById('profile-guest-state').classList.add('hidden');
-        document.getElementById('profile-logged-in-state').classList.remove('hidden');
-        loadProfile(user);
-        loadMyList(user);
-    } else {
-        console.log('User signed out');
-        document.getElementById('profile-guest-state').classList.remove('hidden');
-        document.getElementById('profile-logged-in-state').classList.add('hidden');
-        document.getElementById('list-empty-state').classList.remove('hidden');
-        document.getElementById('list-content').classList.add('hidden');
-    }
-});
-
-function loadProfile(user = auth.currentUser) {
-    if (!user) return;
-    
-    const profileState = document.getElementById('profile-logged-in-state');
-    profileState.innerHTML = `
-        <div class="profile-avatar">${user.displayName ? user.displayName[0].toUpperCase() : 'U'}</div>
-        <div class="empty-title">${user.displayName || 'User'}</div>
-        <p class="text-sec">Email: ${user.email}</p>
-        <p class="text-sec" style="margin-top: 10px;">Movies in list: <span id="my-list-count">0</span></p>
-        <button class="btn btn-glass btn-full" onclick="auth.signOut()" style="margin-top: 20px;">Sign Out</button>
-    `;
-}
-
-async function loadMyList(user = auth.currentUser) {
-    if (!user) {
-        document.getElementById('list-empty-state').classList.remove('hidden');
-        document.getElementById('list-content').classList.add('hidden');
-        return;
-    }
-    
-    try {
-        const snapshot = await db.collection(`users/${user.uid}/myList`).get();
-        
-        if (snapshot.empty) {
-            document.getElementById('list-empty-state').classList.remove('hidden');
-            document.getElementById('list-content').classList.add('hidden');
-            document.getElementById('my-list-count')?.textContent = '0';
-            return;
         }
-        
-        document.getElementById('list-empty-state').classList.add('hidden');
-        document.getElementById('list-content').classList.remove('hidden');
-        
-        const listContent = document.getElementById('list-content');
-        listContent.innerHTML = '<p class="row-title" style="padding: 20px;">My Saved Movies</p>';
-        
-        const scrollBox = document.createElement('div');
-        scrollBox.className = 'row-scroll';
-        scrollBox.style.padding = '0 20px 20px';
-        
-        const moviePromises = [];
-        
-        snapshot.forEach((doc) => {
-            const listItem = doc.data();
-            if (listItem.movieId) {
-                moviePromises.push(
-                    db.collection('movies').doc(listItem.movieId).get()
-                        .then(movieDoc => {
-                            if (movieDoc.exists) {
-                                const movie = movieDoc.data();
-                                const card = document.createElement('div');
-                                card.className = 'movie-card';
-                                card.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
-                                card.style.backgroundSize = 'cover';
-                                card.style.backgroundPosition = 'center';
-                                card.onclick = () => openMovieDetail(listItem.movieId);
-                                scrollBox.appendChild(card);
-                            }
-                        })
-                );
+
+        // ------------------------------------------------------------------
+        //  LOGIN/LOGOUT
+        // ------------------------------------------------------------------
+        function showLogin(message) {
+            const modal = document.getElementById('login-modal');
+            const msg = document.getElementById('login-msg');
+            
+            if (msg && message) msg.textContent = message;
+            if (modal) modal.classList.add('visible');
+        }
+
+        function hideLogin() {
+            const modal = document.getElementById('login-modal');
+            if (modal) modal.classList.remove('visible');
+        }
+
+        function performLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log('Logged in:', result.user);
+                    hideLogin();
+                    showToast('Welcome!');
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    showError('Login failed: ' + error.message);
+                });
+        }
+
+        // ------------------------------------------------------------------
+        //  UTILITY FUNCTIONS
+        // ------------------------------------------------------------------
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 4px;
+                z-index: 1000;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+            
+            // Add keyframes for animation
+            if (!document.getElementById('toast-animation')) {
+                const style = document.createElement('style');
+                style.id = 'toast-animation';
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                        90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                        100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                    }
+                `;
+                document.head.appendChild(style);
             }
-        });
-        
-        await Promise.all(moviePromises);
-        listContent.appendChild(scrollBox);
-        document.getElementById('my-list-count')?.textContent = snapshot.size;
-        
-    } catch (error) {
-        console.error('Error loading my list:', error);
-        document.getElementById('list-empty-state').classList.remove('hidden');
-        document.getElementById('list-content').classList.add('hidden');
-    }
-}
-
-async function addToMyList(movieId) {
-    const user = auth.currentUser;
-    if (!user) {
-        showLogin('To add to My List');
-        return;
-    }
-    
-    try {
-        await db.collection(`users/${user.uid}/myList`).add({
-            movieId: movieId,
-            addedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        showToast('Added to My List!', 'success');
-        loadMyList();
-        
-    } catch (error) {
-        console.error('Error adding to list:', error);
-        showToast('Failed to add to list', 'error');
-    }
-}
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-function showToast(message, type = 'info') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.style.cssText = `
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 300px;
-        `;
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
-        color: white;
-        padding: 12px 16px;
-        border-radius: 4px;
-        font-size: 14px;
-        animation: slideIn 0.3s ease;
-    `;
-    toast.textContent = message;
-    
-    toastContainer.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-// Add CSS for toast animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+            
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Remove toast after animation
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 3000);
         }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
-// ============================================
-// INITIALIZATION
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing app...');
-    
-    // Load movies immediately
-    loadMoviesFromFirestore();
-    
-    // Set up auto-refresh every 30 seconds to get new movies
-    setInterval(loadMoviesFromFirestore, 30000);
-    
-    // Initial banner setup (will be replaced by real movies)
-    const bannerContainer = document.getElementById('banner-slider');
-    bannerContainer.innerHTML = `
-        <div class="banner-slide active">
-            <div class="banner-placeholder">
-                <div class="banner-text">Loading Movies...</div>
-                <div class="text-sec">Please wait while we load content</div>
-            </div>
-        </div>
-    `;
-});
+        function showError(message) {
+            showToast(`❌ ${message}`);
+        }
 
+        function refreshMovies() {
+            location.reload();
+        }
+
+        function rateMovie() {
+            if (!currentUser) {
+                showLogin('To rate movies');
+                return;
+            }
+            showToast('Rating feature coming soon!');
+        }
+
+        // ------------------------------------------------------------------
+        //  INITIAL SETUP COMPLETE
+        // ------------------------------------------------------------------
+        console.log('StreamUI App loaded successfully!');
     </script>
 </body>
 </html>
