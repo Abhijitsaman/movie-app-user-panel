@@ -449,272 +449,580 @@
 
     <!-- === JAVASCRIPT LOGIC === -->
     <script>
-        // ------------------------------------------------------------------
-        //  FIREBASE CONFIGURATION (Uncommented and Initialized)
-        // ------------------------------------------------------------------
-        // Your provided Firebase config
-        const firebaseConfig = {
-          apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
-          authDomain: "mymovieapp-b088c.firebaseapp.com",
-          projectId: "mymovieapp-b088c",
-          storageBucket: "mymovieapp-b088c.firebasestorage.app",
-          messagingSenderId: "243642474836",
-          appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
-        };
+ 
+// ============================================
+// FIREBASE CONFIGURATION
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+  authDomain: "mymovieapp-b088c.firebaseapp.com",
+  projectId: "mymovieapp-b088c",
+  storageBucket: "mymovieapp-b088c.firebasestorage.app",
+  messagingSenderId: "243642474836",
+  appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+};
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        // const storage = firebase.storage(); // Uncomment if you need storage for movie uploads/images
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-        // ------------------------------------------------------------------
+// ============================================
+// APP STATE & NAVIGATION
+// ============================================
+function navTo(screenId) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+    // Show target screen
+    document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+    
+    // Update Nav Icons
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById(`nav-${screenId}`).classList.add('active');
+    
+    if (screenId === 'list') {
+        loadMyList();
+    } else if (screenId === 'profile') {
+        loadProfile();
+    }
+    
+    // Load movies when home screen is opened
+    if (screenId === 'home') {
+        loadMoviesFromFirestore();
+    }
+}
 
-        // --- APP STATE & NAVIGATION ---
-        function navTo(screenId) {
-            // Hide all screens
-            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
-            // Show target screen
-            document.getElementById(`screen-${screenId}`).classList.remove('hidden');
-            
-            // Update Nav Icons
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`nav-${screenId}`).classList.add('active');
-            
-            if (screenId === 'list') {
-                loadMyList();
-            } else if (screenId === 'profile') {
-                loadProfile();
-            }
+// ============================================
+// LOAD MOVIES FROM FIRESTORE - NEW FUNCTION
+// ============================================
+let allMovies = [];
+
+async function loadMoviesFromFirestore() {
+    try {
+        console.log('Loading movies from Firestore...');
+        
+        // Firestore থেকে movies collection লোড করো
+        const snapshot = await db.collection('movies').get();
+        
+        if (snapshot.empty) {
+            console.log('No movies found in Firestore');
+            showEmptyHomeState();
+            return;
         }
+        
+        console.log(`Found ${snapshot.size} movies`);
+        
+        // Clear existing movies
+        allMovies = [];
+        
+        // Process movies
+        snapshot.forEach((doc) => {
+            const movie = doc.data();
+            movie.id = doc.id;
+            allMovies.push(movie);
+        });
+        
+        // Update UI with movies
+        updateHomeWithMovies(allMovies);
+        
+    } catch (error) {
+        console.error('Error loading movies from Firestore:', error);
+        showToast('Failed to load movies', 'error');
+    }
+}
 
-        // --- HOME SCREEN GENERATOR ---
-        const rowCategories = [
-            "Continue Watching", "Trending Now", "New Releases", 
-            "Popular Movies", "Top Rated", "Action Movies", 
-            "Drama Movies", "Comedy Movies", "Horror Movies"
-        ];
+function updateHomeWithMovies(movies) {
+    // 1. Update Banner
+    updateBannerWithMovies(movies.slice(0, 3));
+    
+    // 2. Update Home Content
+    updateHomeContentWithMovies(movies);
+}
 
-        function initHome() {
-            const container = document.getElementById('home-content');
-            
-            rowCategories.forEach((cat, index) => {
-                const section = document.createElement('div');
-                section.className = 'content-section';
-                if(cat === "Trending Now") section.classList.add('row-trending');
-
-                const title = document.createElement('div');
-                title.className = 'row-title';
-                title.innerText = cat;
-
-                const scrollBox = document.createElement('div');
-                scrollBox.className = 'row-scroll';
-
-                // Generate 8 empty cards per row (placeholder; replace with real data fetch if needed)
-                for(let i=0; i<8; i++) {
-                    const card = document.createElement('div');
-                    card.className = 'movie-card';
-                    // Click event to open details
-                    card.onclick = () => openDetail();
-                    scrollBox.appendChild(card);
-                }
-
-                section.appendChild(title);
-                section.appendChild(scrollBox);
-                container.appendChild(section);
-            });
-        }
-
-        // --- BANNER SLIDER LOGIC ---
+function updateBannerWithMovies(bannerMovies) {
+    const bannerContainer = document.getElementById('banner-slider');
+    bannerContainer.innerHTML = '';
+    
+    bannerMovies.forEach((movie, index) => {
+        const slide = document.createElement('div');
+        slide.className = `banner-slide ${index === 0 ? 'active' : ''}`;
+        slide.style.backgroundImage = `linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.8)), url('${movie.posterUrl || ''}')`;
+        slide.style.backgroundSize = 'cover';
+        slide.style.backgroundPosition = 'center';
+        
+        slide.innerHTML = `
+            <div class="banner-placeholder">
+                <div class="banner-text">${movie.title || 'Movie Title'}</div>
+                <div class="text-sec">${movie.genre || 'Movie'} • ${movie.year || '2024'}</div>
+                <button class="btn btn-primary" style="margin-top: 15px;" onclick="openMovieDetail('${movie.id}')">Play Now</button>
+            </div>
+        `;
+        bannerContainer.appendChild(slide);
+    });
+    
+    // Add dots if there are movies
+    if (bannerMovies.length > 0) {
+        const dotContainer = document.createElement('div');
+        dotContainer.className = 'banner-dots';
+        bannerMovies.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i === 0 ? 'active' : ''}`;
+            dotContainer.appendChild(dot);
+        });
+        bannerContainer.appendChild(dotContainer);
+        
+        // Auto-slide functionality
         let currentSlide = 0;
-        function initBanner() {
-            const container = document.getElementById('banner-slider');
-            // Create 3 placeholder slides (replace with real data if needed)
-            for(let i=0; i<3; i++) {
-                const slide = document.createElement('div');
-                slide.className = `banner-slide ${i === 0 ? 'active' : ''}`;
-                slide.innerHTML = `
-                    <div class="banner-placeholder">
-                        <div class="banner-text">Featured Title ${i+1}</div>
-                        <div class="text-sec">#${i+1} in Movies Today</div>
-                    </div>
-                `;
-                container.appendChild(slide);
-            }
+        const slides = bannerContainer.querySelectorAll('.banner-slide');
+        const dots = bannerContainer.querySelectorAll('.dot');
+        
+        // Clear any existing interval
+        if (window.bannerInterval) clearInterval(window.bannerInterval);
+        
+        window.bannerInterval = setInterval(() => {
+            slides[currentSlide].classList.remove('active');
+            dots[currentSlide].classList.remove('active');
+            
+            currentSlide = (currentSlide + 1) % slides.length;
+            
+            slides[currentSlide].classList.add('active');
+            dots[currentSlide].classList.add('active');
+        }, 5000);
+    }
+}
 
-            // Create dots
-            const dotContainer = document.createElement('div');
-            dotContainer.className = 'banner-dots';
-            for(let i=0; i<3; i++) {
-                const dot = document.createElement('div');
-                dot.className = `dot ${i === 0 ? 'active' : ''}`;
-                dotContainer.appendChild(dot);
-            }
-            container.appendChild(dotContainer); // Fixed: append to container instead of placeholder
-
-            // Auto-Slide Timer
-            setInterval(() => {
-                const slides = document.querySelectorAll('.banner-slide');
-                const dots = document.querySelectorAll('.dot');
-                
-                slides[currentSlide].classList.remove('active');
-                dots[currentSlide].classList.remove('active');
-                
-                currentSlide = (currentSlide + 1) % slides.length;
-                
-                slides[currentSlide].classList.add('active');
-                dots[currentSlide].classList.add('active');
-            }, 5000);
-        }
-
-        // --- SEARCH LOGIC ---
-        // Bind tag clicks (placeholder; add real search if needed)
-        document.querySelectorAll('.tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                document.getElementById('search-tags-container').classList.add('hidden');
-                document.getElementById('search-results').classList.remove('hidden');
-            });
-        });
-
-        // --- DETAIL OVERLAY LOGIC ---
-        function openDetail() {
-            document.getElementById('detail-overlay').classList.add('open');
-        }
-        function closeDetail() {
-            document.getElementById('detail-overlay').classList.remove('open');
-        }
-
-        // --- LOGIN MODAL LOGIC ---
-        function showLogin(msg) {
-            const modal = document.getElementById('login-modal');
-            const msgBox = document.getElementById('login-msg');
-            if(msg) msgBox.innerText = msg;
-            modal.classList.add('visible');
-        }
-        function hideLogin() {
-            document.getElementById('login-modal').classList.remove('visible');
-        }
-        function performLogin() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    console.log('Logged in:', result.user);
-                    hideLogin();
-                    // Reload relevant screens
-                    loadProfile();
-                    loadMyList();
-                })
-                .catch((error) => {
-                    console.error('Login error:', error);
-                    alert('Login failed: ' + error.message);
-                });
-        }
-
-        // --- AUTH STATE LISTENER ---
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // User is signed in
-                console.log('User signed in:', user);
-                // Update UI accordingly
-                document.getElementById('profile-guest-state').classList.add('hidden');
-                document.getElementById('profile-logged-in-state').classList.remove('hidden');
-                // Example: Update profile
-                loadProfile(user);
-                loadMyList(user);
-            } else {
-                // User is signed out
-                console.log('User signed out');
-                document.getElementById('profile-guest-state').classList.remove('hidden');
-                document.getElementById('profile-logged-in-state').classList.add('hidden');
-                document.getElementById('list-empty-state').classList.remove('hidden');
-                document.getElementById('list-content').classList.add('hidden');
-            }
-        });
-
-        // --- LOAD PROFILE ---
-        function loadProfile(user) {
-            if (!user) return;
-            const profileState = document.getElementById('profile-logged-in-state');
-            profileState.innerHTML = `
-                <div class="profile-avatar">${user.displayName ? user.displayName[0] : '?'}</div>
-                <div class="empty-title">${user.displayName || 'User'}</div>
-                <p class="text-sec">Email: ${user.email}</p>
-                <button class="btn btn-glass btn-full" onclick="auth.signOut()">Sign Out</button>
+function updateHomeContentWithMovies(movies) {
+    const homeContent = document.getElementById('home-content');
+    homeContent.innerHTML = '';
+    
+    // Create different categories
+    const categories = {
+        "Trending Now": movies.slice(0, 8),
+        "New Releases": movies.slice(0, 8),
+        "Popular Movies": movies.slice(0, 10),
+        "Action Movies": movies.filter(m => m.genre && m.genre.includes('Action')).slice(0, 8),
+        "Drama Movies": movies.filter(m => m.genre && m.genre.includes('Drama')).slice(0, 8),
+        "Comedy Movies": movies.filter(m => m.genre && m.genre.includes('Comedy')).slice(0, 8)
+    };
+    
+    // Create rows for each category
+    Object.entries(categories).forEach(([category, categoryMovies]) => {
+        if (categoryMovies.length === 0) return;
+        
+        const section = document.createElement('div');
+        section.className = 'content-section';
+        if (category === "Trending Now") section.classList.add('row-trending');
+        
+        const title = document.createElement('div');
+        title.className = 'row-title';
+        title.textContent = category;
+        
+        const scrollBox = document.createElement('div');
+        scrollBox.className = 'row-scroll';
+        
+        categoryMovies.forEach(movie => {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            card.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
+            card.style.backgroundSize = 'cover';
+            card.style.backgroundPosition = 'center';
+            card.onclick = () => openMovieDetail(movie.id);
+            
+            // Add title overlay on hover
+            card.innerHTML = `
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 8px; display: none;">
+                    <div style="font-size: 12px; font-weight: bold;">${movie.title || 'Movie'}</div>
+                    <div style="font-size: 10px; color: #aaa;">${movie.genre || ''}</div>
+                </div>
             `;
-        }
-
-        // --- LOAD MY LIST (Assuming movies are stored in Firestore under users/{uid}/myList) ---
-        function loadMyList(user) {
-            const currentUser = user || auth.currentUser;
-            if (!currentUser) {
-                showLogin('To see your saved movies');
-                return;
-            }
-            document.getElementById('list-empty-state').classList.add('hidden');
-            document.getElementById('list-content').classList.remove('hidden');
-
-            const listContent = document.getElementById('list-content');
-            listContent.innerHTML = ''; // Clear previous
-
-            // Fetch from Firestore (assuming admin uploads to a 'movies' collection, and user saves references)
-            // For simplicity, assuming myList is a collection of movie IDs or docs
-            db.collection(`users/${currentUser.uid}/myList`)
-                .get()
-                .then((querySnapshot) => {
-                    if (querySnapshot.empty) {
-                        listContent.innerHTML = '<p class="text-sec">No movies in your list yet.</p>';
-                    } else {
-                        const scrollBox = document.createElement('div');
-                        scrollBox.className = 'row-scroll';
-                        querySnapshot.forEach((doc) => {
-                            const movieData = doc.data();
-                            const card = document.createElement('div');
-                            card.className = 'movie-card';
-                            card.style.backgroundImage = movieData.poster ? `url(${movieData.poster})` : ''; // Assuming poster URL from admin upload
-                            card.onclick = () => openDetail(movieData); // Pass data if needed
-                            scrollBox.appendChild(card);
-                        });
-                        listContent.appendChild(scrollBox);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error fetching my list:', error);
-                });
-        }
-
-        // --- ADD TO MY LIST (Example function; adjust based on your admin/movie structure) ---
-        function addToMyList(movieId = 'placeholder') { // Pass real movieId from card
-            const user = auth.currentUser;
-            if (!user) {
-                showLogin('To add to My List');
-                return;
-            }
-            // Assuming movies are uploaded by admin to 'movies' collection, and we add reference to user's myList
-            db.collection(`users/${user.uid}/myList`).add({ movieId: movieId, addedAt: firebase.firestore.FieldValue.serverTimestamp() })
-                .then(() => {
-                    console.log('Added to my list');
-                    loadMyList(); // Refresh if on list screen
-                })
-                .catch((error) => {
-                    console.error('Error adding to list:', error);
-                });
-        }
-
-        // --- RATE MOVIE (Placeholder; implement as needed) ---
-        function rateMovie() {
-            const user = auth.currentUser;
-            if (!user) {
-                showLogin('To like this movie');
-                return;
-            }
-            alert('Rating functionality placeholder. Implement with Firestore.');
-        }
-
-        // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initBanner();
-            initHome();
+            
+            card.onmouseenter = function() {
+                this.querySelector('div').style.display = 'block';
+            };
+            card.onmouseleave = function() {
+                this.querySelector('div').style.display = 'none';
+            };
+            
+            scrollBox.appendChild(card);
         });
+        
+        section.appendChild(title);
+        section.appendChild(scrollBox);
+        homeContent.appendChild(section);
+    });
+}
+
+function showEmptyHomeState() {
+    const homeContent = document.getElementById('home-content');
+    homeContent.innerHTML = `
+        <div class="empty-state" style="height: 50vh;">
+            <div class="empty-icon"></div>
+            <div class="empty-title">No Movies Available</div>
+            <p class="text-sec">Movies will appear here once uploaded by admin.</p>
+        </div>
+    `;
+}
+
+// ============================================
+// MOVIE DETAIL FUNCTIONS
+// ============================================
+async function openMovieDetail(movieId) {
+    try {
+        console.log('Opening movie detail for:', movieId);
+        
+        const doc = await db.collection('movies').doc(movieId).get();
+        
+        if (!doc.exists) {
+            showToast('Movie not found', 'error');
+            return;
+        }
+        
+        const movie = doc.data();
+        
+        // Update detail overlay
+        document.querySelector('.detail-title').textContent = movie.title || 'Movie';
+        document.querySelector('.detail-meta').textContent = 
+            `${movie.year || '2024'} • ${movie.duration ? movie.duration + 'm' : '2h'} • ${movie.genre || 'Movie'}`;
+        document.querySelector('.detail-desc').textContent = movie.description || 'No description available.';
+        
+        // Update background
+        const detailBg = document.getElementById('detail-bg');
+        detailBg.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
+        detailBg.style.backgroundSize = 'cover';
+        detailBg.style.backgroundPosition = 'center';
+        
+        // Update play button to open movie URL
+        const playBtn = document.querySelector('.btn-secondary');
+        playBtn.onclick = function() {
+            if (movie.movieUrl) {
+                window.open(movie.movieUrl, '_blank');
+            } else {
+                showToast('No video URL available', 'warning');
+            }
+        };
+        
+        // Update download button
+        const downloadBtn = document.querySelector('.btn-glass');
+        downloadBtn.onclick = function() {
+            if (movie.downloadUrl) {
+                window.open(movie.downloadUrl, '_blank');
+            } else {
+                showToast('No download URL available', 'warning');
+            }
+        };
+        
+        // Update My List button
+        document.querySelector('.action-col[onclick="addToMyList()"]').onclick = function() {
+            addToMyList(movieId);
+        };
+        
+        // Show overlay
+        document.getElementById('detail-overlay').classList.add('open');
+        
+    } catch (error) {
+        console.error('Error loading movie details:', error);
+        showToast('Failed to load movie details', 'error');
+    }
+}
+
+function closeDetail() {
+    document.getElementById('detail-overlay').classList.remove('open');
+}
+
+// ============================================
+// SEARCH FUNCTIONALITY
+// ============================================
+document.querySelectorAll('.tag').forEach(tag => {
+    tag.addEventListener('click', function() {
+        const genre = this.textContent;
+        document.getElementById('search-tags-container').classList.add('hidden');
+        
+        const searchResults = document.getElementById('search-results');
+        searchResults.classList.remove('hidden');
+        searchResults.innerHTML = `
+            <p class="row-title">Search Results: ${genre}</p>
+            <div class="movies-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
+                ${allMovies.filter(movie => movie.genre && movie.genre.includes(genre))
+                    .map(movie => `
+                        <div class="movie-card" style="height: 200px;" onclick="openMovieDetail('${movie.id}')">
+                            <div style="width: 100%; height: 100%; background-image: url('${movie.posterUrl || ''}'); background-size: cover; background-position: center;"></div>
+                        </div>
+                    `).join('') || '<p class="text-sec">No movies found in this genre.</p>'}
+            </div>
+        `;
+    });
+});
+
+// Search input functionality
+document.querySelector('.search-input').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    
+    if (searchTerm.length < 2) {
+        document.getElementById('search-tags-container').classList.remove('hidden');
+        document.getElementById('search-results').classList.add('hidden');
+        return;
+    }
+    
+    document.getElementById('search-tags-container').classList.add('hidden');
+    
+    const searchResults = document.getElementById('search-results');
+    searchResults.classList.remove('hidden');
+    
+    const filteredMovies = allMovies.filter(movie => 
+        (movie.title && movie.title.toLowerCase().includes(searchTerm)) ||
+        (movie.description && movie.description.toLowerCase().includes(searchTerm)) ||
+        (movie.genre && movie.genre.toLowerCase().includes(searchTerm))
+    );
+    
+    searchResults.innerHTML = `
+        <p class="row-title">Search Results for "${searchTerm}"</p>
+        <div class="movies-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
+            ${filteredMovies.map(movie => `
+                <div class="movie-card" style="height: 200px;" onclick="openMovieDetail('${movie.id}')">
+                    <div style="width: 100%; height: 100%; background-image: url('${movie.posterUrl || ''}'); background-size: cover; background-position: center;"></div>
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); padding: 8px;">
+                        <div style="font-size: 12px; font-weight: bold;">${movie.title || 'Movie'}</div>
+                        <div style="font-size: 10px; color: #aaa;">${movie.genre || ''}</div>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-sec">No movies found matching your search.</p>'}
+        </div>
+    `;
+});
+
+// ============================================
+// AUTHENTICATION FUNCTIONS
+// ============================================
+function showLogin(msg) {
+    const modal = document.getElementById('login-modal');
+    const msgBox = document.getElementById('login-msg');
+    if (msg) msgBox.innerText = msg;
+    modal.classList.add('visible');
+}
+
+function hideLogin() {
+    document.getElementById('login-modal').classList.remove('visible');
+}
+
+function performLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            console.log('Logged in:', result.user);
+            hideLogin();
+            loadProfile();
+            loadMyList();
+            showToast('Login successful!', 'success');
+        })
+        .catch((error) => {
+            console.error('Login error:', error);
+            showToast('Login failed: ' + error.message, 'error');
+        });
+}
+
+// Auth state listener
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        console.log('User signed in:', user.email);
+        document.getElementById('profile-guest-state').classList.add('hidden');
+        document.getElementById('profile-logged-in-state').classList.remove('hidden');
+        loadProfile(user);
+        loadMyList(user);
+    } else {
+        console.log('User signed out');
+        document.getElementById('profile-guest-state').classList.remove('hidden');
+        document.getElementById('profile-logged-in-state').classList.add('hidden');
+        document.getElementById('list-empty-state').classList.remove('hidden');
+        document.getElementById('list-content').classList.add('hidden');
+    }
+});
+
+function loadProfile(user = auth.currentUser) {
+    if (!user) return;
+    
+    const profileState = document.getElementById('profile-logged-in-state');
+    profileState.innerHTML = `
+        <div class="profile-avatar">${user.displayName ? user.displayName[0].toUpperCase() : 'U'}</div>
+        <div class="empty-title">${user.displayName || 'User'}</div>
+        <p class="text-sec">Email: ${user.email}</p>
+        <p class="text-sec" style="margin-top: 10px;">Movies in list: <span id="my-list-count">0</span></p>
+        <button class="btn btn-glass btn-full" onclick="auth.signOut()" style="margin-top: 20px;">Sign Out</button>
+    `;
+}
+
+async function loadMyList(user = auth.currentUser) {
+    if (!user) {
+        document.getElementById('list-empty-state').classList.remove('hidden');
+        document.getElementById('list-content').classList.add('hidden');
+        return;
+    }
+    
+    try {
+        const snapshot = await db.collection(`users/${user.uid}/myList`).get();
+        
+        if (snapshot.empty) {
+            document.getElementById('list-empty-state').classList.remove('hidden');
+            document.getElementById('list-content').classList.add('hidden');
+            document.getElementById('my-list-count')?.textContent = '0';
+            return;
+        }
+        
+        document.getElementById('list-empty-state').classList.add('hidden');
+        document.getElementById('list-content').classList.remove('hidden');
+        
+        const listContent = document.getElementById('list-content');
+        listContent.innerHTML = '<p class="row-title" style="padding: 20px;">My Saved Movies</p>';
+        
+        const scrollBox = document.createElement('div');
+        scrollBox.className = 'row-scroll';
+        scrollBox.style.padding = '0 20px 20px';
+        
+        const moviePromises = [];
+        
+        snapshot.forEach((doc) => {
+            const listItem = doc.data();
+            if (listItem.movieId) {
+                moviePromises.push(
+                    db.collection('movies').doc(listItem.movieId).get()
+                        .then(movieDoc => {
+                            if (movieDoc.exists) {
+                                const movie = movieDoc.data();
+                                const card = document.createElement('div');
+                                card.className = 'movie-card';
+                                card.style.backgroundImage = `url('${movie.posterUrl || ''}')`;
+                                card.style.backgroundSize = 'cover';
+                                card.style.backgroundPosition = 'center';
+                                card.onclick = () => openMovieDetail(listItem.movieId);
+                                scrollBox.appendChild(card);
+                            }
+                        })
+                );
+            }
+        });
+        
+        await Promise.all(moviePromises);
+        listContent.appendChild(scrollBox);
+        document.getElementById('my-list-count')?.textContent = snapshot.size;
+        
+    } catch (error) {
+        console.error('Error loading my list:', error);
+        document.getElementById('list-empty-state').classList.remove('hidden');
+        document.getElementById('list-content').classList.add('hidden');
+    }
+}
+
+async function addToMyList(movieId) {
+    const user = auth.currentUser;
+    if (!user) {
+        showLogin('To add to My List');
+        return;
+    }
+    
+    try {
+        await db.collection(`users/${user.uid}/myList`).add({
+            movieId: movieId,
+            addedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        showToast('Added to My List!', 'success');
+        loadMyList();
+        
+    } catch (error) {
+        console.error('Error adding to list:', error);
+        showToast('Failed to add to list', 'error');
+    }
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+function showToast(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 4px;
+        font-size: 14px;
+        animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Add CSS for toast animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing app...');
+    
+    // Load movies immediately
+    loadMoviesFromFirestore();
+    
+    // Set up auto-refresh every 30 seconds to get new movies
+    setInterval(loadMoviesFromFirestore, 30000);
+    
+    // Initial banner setup (will be replaced by real movies)
+    const bannerContainer = document.getElementById('banner-slider');
+    bannerContainer.innerHTML = `
+        <div class="banner-slide active">
+            <div class="banner-placeholder">
+                <div class="banner-text">Loading Movies...</div>
+                <div class="text-sec">Please wait while we load content</div>
+            </div>
+        </div>
+    `;
+});
 
     </script>
 </body>
