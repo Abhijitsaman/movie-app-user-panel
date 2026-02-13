@@ -1,1100 +1,818 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieStream - Watch Free Movies</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        :root {
-            --bg-dark: #0f0f0f;
-            --bg-charcoal: #1a1a1a;
-            --accent-red: #e50914;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --text-placeholder: #6d6d6d;
-            --card-bg: #2a2a2a;
-            --hover-bg: #333333;
-            --modal-overlay: rgba(0, 0, 0, 0.85);
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
-            max-width: 100vw;
-            overflow-x: hidden;
-            padding-bottom: 70px;
-        }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            padding: 15px 20px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent-red);
-            letter-spacing: -0.5px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 20px;
-        }
-
-        .search-icon, .profile-icon {
-            font-size: 20px;
-            color: var(--text-primary);
-            cursor: pointer;
-        }
-
-        .screen {
-            display: none;
-            min-height: calc(100vh - 70px);
-            padding-top: 60px;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: var(--bg-charcoal);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 200;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-secondary);
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            flex: 1;
-        }
-
-        .nav-item i {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-
-        .nav-item.active {
-            color: var(--accent-red);
-        }
-
-        .banner-container {
-            position: relative;
-            width: 100%;
-            height: 50vh;
-            min-height: 300px;
-            max-height: 500px;
-            overflow: hidden;
-            background-color: var(--bg-charcoal);
-            margin-bottom: 30px;
-        }
-
-        .banner-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 1s ease;
-        }
-
-        .banner-slide.active {
-            opacity: 1;
-        }
-
-        .banner-content {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: flex-end;
-            padding: 40px;
-            background: linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.4), transparent);
-        }
-
-        .banner-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-        }
-
-        .banner-info {
-            max-width: 500px;
-        }
-
-        .banner-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .banner-description {
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .banner-btn {
-            background-color: var(--accent-red);
-            color: white;
-            border: none;
-            padding: 10px 30px;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .banner-btn:hover {
-            background-color: #f40612;
-        }
-
-        .banner-dots {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: var(--text-placeholder);
-            cursor: pointer;
-        }
-
-        .dot.active {
-            background-color: var(--accent-red);
-        }
-
-        .content-section {
-            padding: 0 20px;
-            margin-bottom: 30px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .section-title {
-            font-size: 22px;
-            font-weight: 600;
-        }
-
-        .row-container {
-            display: flex;
-            overflow-x: auto;
-            gap: 15px;
-            padding-bottom: 10px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-red) transparent;
-        }
-
-        .row-container::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .row-container::-webkit-scrollbar-thumb {
-            background-color: var(--accent-red);
-            border-radius: 4px;
-        }
-
-        .movie-card {
-            flex: 0 0 auto;
-            width: 150px;
-            height: 225px;
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .movie-card:hover {
-            transform: scale(1.05);
-        }
-
-        .movie-poster {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .movie-title-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 30px 10px 10px;
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .search-screen {
-            padding: 20px;
-        }
-
-        .search-container {
-            margin-top: 20px;
-            margin-bottom: 30px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 16px 20px;
-            background-color: var(--bg-charcoal);
-            border: 1px solid var(--text-placeholder);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 16px;
-        }
-
-        .categories {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 30px;
-        }
-
-        .category-tag {
-            padding: 10px 20px;
-            background-color: var(--card-bg);
-            border-radius: 20px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .category-tag:hover, .category-tag.active {
-            background-color: var(--accent-red);
-            color: white;
-        }
-
-        .search-results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        .loading-spinner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 50px;
-        }
-
-        .loading-spinner i {
-            font-size: 40px;
-            color: var(--accent-red);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 70vh;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .empty-icon {
-            font-size: 80px;
-            color: var(--text-placeholder);
-            margin-bottom: 30px;
-        }
-
-        .empty-title {
-            font-size: 28px;
-            margin-bottom: 15px;
-        }
-
-        .empty-subtitle {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin-bottom: 30px;
-            max-width: 400px;
-        }
-
-        .login-btn {
-            background-color: var(--accent-red);
-            color: white;
-            border: none;
-            padding: 14px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .detail-container {
-            padding: 20px;
-        }
-
-        .detail-poster {
-            width: 100%;
-            height: 300px;
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .detail-poster img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .detail-title {
-            font-size: 28px;
-            margin-bottom: 15px;
-        }
-
-        .detail-meta {
-            display: flex;
-            gap: 15px;
-            color: var(--text-secondary);
-            margin-bottom: 15px;
-        }
-
-        .detail-description {
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 25px;
-        }
-
-        .detail-actions {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .action-btn {
-            flex: 1;
-            padding: 14px;
-            text-align: center;
-            background-color: var(--card-bg);
-            color: var(--text-primary);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: none;
-            font-size: 16px;
-        }
-
-        .action-btn.play {
-            background-color: var(--accent-red);
-        }
-
-        .action-btn:hover {
-            opacity: 0.9;
-        }
-
-        .video-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .video-modal.active {
-            display: flex;
-        }
-
-        .video-container {
-            width: 90%;
-            max-width: 900px;
-            position: relative;
-        }
-
-        .video-player {
-            width: 100%;
-            height: auto;
-            max-height: 80vh;
-        }
-
-        .close-video {
-            position: absolute;
-            top: -40px;
-            right: 0;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-        }
-
-        @media (min-width: 768px) {
-            .movie-card {
-                width: 180px;
-                height: 270px;
-            }
-            
-            .banner-container {
-                height: 60vh;
-            }
-            
-            .detail-poster {
-                height: 400px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MovieStream · user panel</title>
+  <!-- Font Awesome 6 (icons only, no frameworks) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* ---------- CINEMATIC DARK THEME ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+
+    body {
+      background-color: #0b0b0b; /* deep charcoal */
+      color: #f5f5f5; /* soft white */
+      padding-bottom: 80px; /* space for bottom nav */
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* hide all screens by default, JS will show one */
+    .screen {
+      display: none;
+      padding: 16px 16px 24px;
+      animation: fadeTransition 0.25s ease;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeTransition {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    /* ---- typography & spacing ---- */
+    h1, h2, h3, h4 {
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .text-muted {
+      color: #a0a0a0;
+      font-size: 0.9rem;
+    }
+
+    .text-small {
+      font-size: 0.8rem;
+      color: #b0b0b0;
+    }
+
+    /* ---- header / logo ---- */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0 8px;
+      margin-bottom: 6px;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #e50914; /* Netflix deep red */
+      letter-spacing: -0.5px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.3rem;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.15s;
+    }
+
+    .icon-btn:active {
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* ---- banner / slider (no images) ---- */
+    .banner-container {
+      margin: 8px 0 20px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .banner-placeholder {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #1e1e1e;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6a6a6a;
+      font-size: 1rem;
+      border: 1px solid #2a2a2a;
+      box-shadow: 0 8px 12px rgba(0,0,0,0.6);
+    }
+
+    .dot-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background: #404040;
+      transition: all 0.2s;
+    }
+
+    .dot.active-dot {
+      background: #e50914;
+      width: 20px;
+    }
+
+    /* ---- content rows (horizontal scroll, Netflix style) ---- */
+    .row-section {
+      margin-bottom: 28px;
+    }
+
+    .row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .row-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #f0f0f0;
+    }
+
+    .scroll-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: #505050 #1a1a1a;
+    }
+
+    .scroll-row::-webkit-scrollbar {
+      height: 4px;
+    }
+    .scroll-row::-webkit-scrollbar-thumb {
+      background: #505050;
+      border-radius: 8px;
+    }
+
+    /* card – pure grey placeholder, rounded, no borders, no text */
+    .card-placeholder {
+      flex: 0 0 140px;
+      height: 200px;
+      background: #1f1f1f;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .card-placeholder:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+    }
+
+    /* for smaller screens, adjust card width */
+    @media (min-width: 480px) {
+      .card-placeholder { flex-basis: 160px; height: 220px; }
+    }
+
+    /* ---- search screen ---- */
+    .search-input-wrapper {
+      background: #1e1e1e;
+      border-radius: 30px;
+      padding: 4px 20px;
+      margin: 20px 0 28px;
+      display: flex;
+      align-items: center;
+      border: 1px solid #2c2c2c;
+    }
+
+    .search-input-wrapper i {
+      color: #909090;
+      margin-right: 12px;
+    }
+
+    #searchField {
+      background: transparent;
+      border: none;
+      padding: 14px 0;
+      color: white;
+      font-size: 1rem;
+      width: 100%;
+      outline: none;
+    }
+
+    #searchField::placeholder {
+      color: #6c6c6c;
+      font-weight: 300;
+    }
+
+    .categories-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .category-chip {
+      background: #1c1c1c;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .category-chip:active {
+      background: #e50914;
+      color: white;
+    }
+
+    /* empty results placeholder */
+    .empty-placeholder {
+      background: #181818;
+      border-radius: 20px;
+      padding: 40px 24px;
+      text-align: center;
+      color: #9a9a9a;
+      margin: 32px 0;
+      border: 1px dashed #3a3a3a;
+    }
+
+    /* ---- my list / profile screens ---- */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .empty-icon {
+      font-size: 3.2rem;
+      color: #424242;
+      margin-bottom: 20px;
+    }
+
+    .btn-google {
+      background: #e50914;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 30px;
+      border-radius: 40px;
+      margin-top: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 6px 12px rgba(229,9,20,0.2);
+      transition: all 0.18s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-google:active {
+      background: #b20710;
+      transform: scale(0.96);
+    }
+
+    .btn-later {
+      background: transparent;
+      border: 1px solid #5a5a5a;
+      color: #ddd;
+      padding: 12px 28px;
+      border-radius: 40px;
+      font-weight: 500;
+      margin-left: 12px;
+    }
+
+    /* ---- profile card ---- */
+    .profile-guest {
+      background: #141414;
+      padding: 32px 20px;
+      border-radius: 24px;
+      text-align: center;
+      max-width: 360px;
+      margin: 40px auto;
+    }
+
+    .profile-icon {
+      font-size: 4rem;
+      color: #6a6a6a;
+      margin-bottom: 16px;
+    }
+
+    /* ---- movie detail placeholder (standalone) ---- */
+    .detail-poster-block {
+      width: 100%;
+      height: 220px;
+      background: #1e1e1e;
+      border-radius: 20px;
+      margin: 16px 0 20px;
+    }
+
+    .title-block {
+      height: 28px;
+      width: 70%;
+      background: #2a2a2a;
+      border-radius: 8px;
+      margin: 20px 0 16px;
+    }
+
+    .desc-line {
+      height: 14px;
+      background: #252525;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 16px;
+      margin: 32px 0 20px;
+    }
+
+    .disabled-btn {
+      background: #2c2c2c;
+      color: #8a8a8a;
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 500;
+      border: none;
+      opacity: 0.7;
+    }
+
+    /* ---- bottom navigation (fixed, one-hand) ---- */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #0c0c0c;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 12px 8px 18px;
+      border-top: 1px solid #222;
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #909090;
+      font-size: 0.75rem;
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+      transition: color 0.1s, background 0.1s;
+      cursor: pointer;
+    }
+
+    .nav-item i {
+      font-size: 1.3rem;
+    }
+
+    .nav-item.active {
+      color: #e50914;
+    }
+
+    .nav-item:active {
+      background: rgba(229,9,20,0.1);
+    }
+
+    /* ---- login modal (bottom sheet style) ---- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 2000;
+      transition: 0.2s;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .login-sheet {
+      background: #1a1a1a;
+      width: 100%;
+      border-radius: 28px 28px 0 0;
+      padding: 36px 24px 32px;
+      text-align: center;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0.7; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .login-sheet h3 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+
+    .login-sheet p {
+      color: #b8b8b8;
+      margin-bottom: 28px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    /* ---- helper hide ---- */
+    .d-none {
+      display: none !important;
+    }
+
+    /* ---- firebase config is placed, but UI only (no backend calls) ---- */
+  </style>
 </head>
 <body>
-    <header class="header">
-        <div class="logo">MOVIESTREAM</div>
-        <div class="header-actions">
-            <div class="search-icon" id="headerSearch">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="profile-icon" id="headerProfile">
-                <i class="fas fa-user-circle"></i>
-            </div>
-        </div>
-    </header>
+  <!-- ============ FIREBASE CONFIG (EMBEDDED, READY) ============ -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script>
+    // Firebase configuration — provided, fully integrated
+    const firebaseConfig = {
+      apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
+      authDomain: "mymovieapp-b088c.firebaseapp.com",
+      projectId: "mymovieapp-b088c",
+      storageBucket: "mymovieapp-b088c.firebasestorage.app",
+      messagingSenderId: "243642474836",
+      appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
+    };
+    // Initialize Firebase (silent, no UI logic)
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase ready (user panel skeleton)");
+  </script>
 
-    <!-- Home Screen -->
-    <section id="homeScreen" class="screen active">
-        <div class="banner-container" id="bannerContainer">
-            <!-- Banners will be loaded dynamically -->
-            <div class="banner-dots" id="bannerDots"></div>
-        </div>
+  <!-- ============ SCREENS ============ -->
 
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">Trending Now</h2>
-            </div>
-            <div class="row-container" id="trendingMovies"></div>
-        </div>
-
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">New Releases</h2>
-            </div>
-            <div class="row-container" id="newReleases"></div>
-        </div>
-
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">Action Movies</h2>
-            </div>
-            <div class="row-container" id="actionMovies"></div>
-        </div>
-
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">All Movies</h2>
-            </div>
-            <div class="row-container" id="allMovies"></div>
-        </div>
-    </section>
-
-    <!-- Search Screen -->
-    <section id="searchScreen" class="screen">
-        <div class="search-screen">
-            <div class="search-container">
-                <input type="text" class="search-input" id="searchInput" placeholder="Search movies...">
-            </div>
-            
-            <h2>Browse by Genre</h2>
-            <div class="categories" id="genreFilters">
-                <div class="category-tag" data-genre="all">All</div>
-                <div class="category-tag" data-genre="Action">Action</div>
-                <div class="category-tag" data-genre="Comedy">Comedy</div>
-                <div class="category-tag" data-genre="Drama">Drama</div>
-                <div class="category-tag" data-genre="Horror">Horror</div>
-                <div class="category-tag" data-genre="Sci-Fi">Sci-Fi</div>
-                <div class="category-tag" data-genre="Romance">Romance</div>
-                <div class="category-tag" data-genre="Thriller">Thriller</div>
-                <div class="category-tag" data-genre="Animation">Animation</div>
-            </div>
-            
-            <div id="searchResults">
-                <div class="search-results-grid" id="searchResultsGrid"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- My List Screen -->
-    <section id="myListScreen" class="screen">
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-bookmark"></i>
-            </div>
-            <h2 class="empty-title">Your saved movies will appear here</h2>
-            <p class="empty-subtitle">Login to save movies and create your personal watchlist</p>
-            <button class="login-btn" id="myListLoginBtn">Continue with Google</button>
-        </div>
-    </section>
-
-    <!-- Profile Screen -->
-    <section id="profileScreen" class="screen">
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-user-circle"></i>
-            </div>
-            <h2 class="empty-title">You are browsing as a Guest</h2>
-            <p class="empty-subtitle">Login to save movies, likes, and watch history</p>
-            <button class="login-btn" id="profileLoginBtn">Continue with Google</button>
-        </div>
-    </section>
-
-    <!-- Movie Detail Screen -->
-    <section id="detailScreen" class="screen">
-        <div class="detail-container">
-            <div class="detail-poster" id="detailPoster"></div>
-            <h1 class="detail-title" id="detailTitle"></h1>
-            <div class="detail-meta" id="detailMeta"></div>
-            <p class="detail-description" id="detailDescription"></p>
-            
-            <div class="detail-actions">
-                <button class="action-btn play" id="playMovieBtn">Play</button>
-                <button class="action-btn" id="addToListBtn">Add to My List</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Video Player Modal -->
-    <div class="video-modal" id="videoModal">
-        <div class="video-container">
-            <span class="close-video" id="closeVideo">&times;</span>
-            <video id="videoPlayer" class="video-player" controls>
-                <source src="" type="video/mp4">
-            </video>
-        </div>
+  <!-- HOME SCREEN -->
+  <div id="homeScreen" class="screen active">
+    <div class="app-header">
+      <span class="logo">MOVIESTREAM</span>
+      <i class="fas fa-search icon-btn" onclick="switchScreen('searchScreen');"></i>
     </div>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-        <div class="nav-item active" data-screen="home">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </div>
-        <div class="nav-item" data-screen="search">
-            <i class="fas fa-search"></i>
-            <span>Search</span>
-        </div>
-        <div class="nav-item" data-screen="myList">
-            <i class="fas fa-bookmark"></i>
-            <span>My List</span>
-        </div>
-        <div class="nav-item" data-screen="profile">
-            <i class="fas fa-user-circle"></i>
-            <span>Profile</span>
-        </div>
-    </nav>
+    <!-- Auto-sliding banner (pure placeholder) -->
+    <div class="banner-container">
+      <div id="bannerSlot" class="banner-placeholder">
+        Featured banner will appear here
+      </div>
+      <div class="dot-indicator" id="bannerDots">
+        <span class="dot active-dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+    </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- CONTENT ROWS (exact order, no movie titles) -->
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Continue Watching</span></div>
+      <div class="scroll-row" id="row1"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Trending Now</span></div>
+      <div class="scroll-row" id="row2"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">New Releases</span></div>
+      <div class="scroll-row" id="row3"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Popular Movies</span></div>
+      <div class="scroll-row" id="row4"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Top Rated</span></div>
+      <div class="scroll-row" id="row5"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Action Movies</span></div>
+      <div class="scroll-row" id="row6"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Drama Movies</span></div>
+      <div class="scroll-row" id="row7"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Comedy Movies</span></div>
+      <div class="scroll-row" id="row8"></div>
+    </div>
+    <div class="row-section">
+      <div class="row-header"><span class="row-title">Horror Movies</span></div>
+      <div class="scroll-row" id="row9"></div>
+    </div>
+  </div>
 
-    <script>
-        // ============================================
-        // FIREBASE CONFIGURATION - YOUR EXACT CONFIG
-        // ============================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyAwTb4dwTnLNwUZ_v37ht4xLL_buNOe96Q",
-            authDomain: "mymovieapp-b088c.firebaseapp.com",
-            projectId: "mymovieapp-b088c",
-            storageBucket: "mymovieapp-b088c.firebasestorage.app",
-            messagingSenderId: "243642474836",
-            appId: "1:243642474836:web:69071fcd8b2ec9bd97a8c1"
-        };
+  <!-- SEARCH SCREEN -->
+  <div id="searchScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Search</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div class="search-input-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchField" placeholder="Search movies, series, or genres">
+    </div>
+    <div style="margin-bottom: 12px;"><span class="text-muted">Popular categories</span></div>
+    <div class="categories-grid">
+      <span class="category-chip" onclick="showEmptySearchResult('Action')">Action</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Drama')">Drama</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Comedy')">Comedy</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Horror')">Horror</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Romance')">Romance</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Thriller')">Thriller</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Sci-Fi')">Sci-Fi</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Animation')">Animation</span>
+      <span class="category-chip" onclick="showEmptySearchResult('Kids')">Kids</span>
+    </div>
 
-        // ============================================
-        // INITIALIZE FIREBASE - THIS WAS MISSING!
-        // ============================================
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const auth = firebase.auth();
+    <!-- dynamic empty results container -->
+    <div id="searchResultPlaceholder" class="empty-placeholder" style="display: none;">
+      <i class="fas fa-film" style="font-size:2rem; margin-bottom: 12px; color:#505050;"></i>
+      <p id="emptyResultText">Movies will appear here</p>
+    </div>
+  </div>
 
-        // ============================================
-        // GLOBAL VARIABLES
-        // ============================================
-        let allMovies = [];
-        let filteredMovies = [];
-        let currentMovie = null;
-        let currentSlide = 0;
-        let slideInterval;
+  <!-- MY LIST SCREEN (guest empty state) -->
+  <div id="myListScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">My List</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fas fa-bookmark"></i></div>
+      <h3 style="font-weight: 400; margin-bottom: 12px;">Your saved movies will appear here</h3>
+      <button class="btn-google" onclick="openLoginModal('save')">
+        <i class="fab fa-google"></i> Continue with Google
+      </button>
+    </div>
+  </div>
 
-        // ============================================
-        // DOM ELEMENTS
-        // ============================================
-        const screens = {
-            home: document.getElementById('homeScreen'),
-            search: document.getElementById('searchScreen'),
-            myList: document.getElementById('myListScreen'),
-            profile: document.getElementById('profileScreen'),
-            detail: document.getElementById('detailScreen')
-        };
+  <!-- PROFILE SCREEN (guest mode) -->
+  <div id="profileScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Profile</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div class="profile-guest">
+      <div class="profile-icon"><i class="fas fa-user-circle"></i></div>
+      <h2 style="font-size:1.6rem; margin-bottom: 8px;">Guest</h2>
+      <p class="text-muted" style="margin-bottom: 16px;">You are browsing as a Guest</p>
+      <p style="margin-bottom: 28px; color:#b0b0b0;">Login to save movies, likes, and watch history</p>
+      <button class="btn-google" onclick="openLoginModal('profile')">
+        <i class="fab fa-google"></i> Continue with Google
+      </button>
+    </div>
+  </div>
 
-        // ============================================
-        // INITIALIZE APP
-        // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeNavigation();
-            initializeSearch();
-            initializeGenreFilters();
-            loadMoviesFromFirebase();
-            
-            // Header navigation
-            document.getElementById('headerSearch').addEventListener('click', () => switchScreen('search'));
-            document.getElementById('headerProfile').addEventListener('click', () => switchScreen('profile'));
-            
-            // Video player
-            document.getElementById('closeVideo').addEventListener('click', closeVideoPlayer);
-            document.getElementById('videoModal').addEventListener('click', (e) => {
-                if (e.target === document.getElementById('videoModal')) {
-                    closeVideoPlayer();
-                }
-            });
-            
-            // Play button
-            document.getElementById('playMovieBtn').addEventListener('click', playCurrentMovie);
+  <!-- MOVIE DETAIL PLACEHOLDER SCREEN (for UI testing) -->
+  <div id="detailScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Preview</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div class="detail-poster-block"></div>
+    <div class="title-block"></div>
+    <div class="desc-line" style="width:100%;"></div>
+    <div class="desc-line" style="width:80%;"></div>
+    <div class="desc-line" style="width:60%;"></div>
+    <div class="button-row">
+      <button class="disabled-btn" onclick="openLoginModal('play')"><i class="fas fa-play"></i> Play</button>
+      <button class="disabled-btn" onclick="openLoginModal('add')"><i class="fas fa-plus"></i> My List</button>
+      <button class="disabled-btn" onclick="openLoginModal('like')"><i class="fas fa-heart"></i> Like</button>
+    </div>
+    <div style="margin-top: 20px; color: #777; text-align: center; padding: 20px;">
+      <i class="fas fa-info-circle"></i> Movie details will appear here
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM NAVIGATION (fixed, 4 items) ============ -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="navHome" onclick="switchScreen('homeScreen');">
+      <i class="fas fa-home"></i><span>Home</span>
+    </button>
+    <button class="nav-item" id="navSearch" onclick="switchScreen('searchScreen');">
+      <i class="fas fa-search"></i><span>Search</span>
+    </button>
+    <button class="nav-item" id="navMyList" onclick="switchScreen('myListScreen');">
+      <i class="fas fa-list"></i><span>My List</span>
+    </button>
+    <button class="nav-item" id="navProfile" onclick="switchScreen('profileScreen');">
+      <i class="fas fa-user"></i><span>Profile</span>
+    </button>
+  </div>
+
+  <!-- ============ LOGIN MODAL (bottom sheet) ============ -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="login-sheet">
+      <i class="fas fa-user-lock" style="font-size: 2.5rem; color: #e50914; margin-bottom: 8px;"></i>
+      <h3>Sign in to continue</h3>
+      <p style="font-size: 1rem;">You need an account to save, like or add items.</p>
+      <div class="button-group">
+        <button class="btn-google" onclick="fakeLogin()">
+          <i class="fab fa-google"></i> Continue with Google
+        </button>
+        <button class="btn-later" onclick="closeLoginModal()">Later</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== UI LOGIC (PURE SKELETON) ====================
+    // Firebase already initialized — no backend calls, only UI
+
+    // ---- screen switching ----
+    const screens = ['homeScreen', 'searchScreen', 'myListScreen', 'profileScreen', 'detailScreen'];
+    const navItems = ['navHome', 'navSearch', 'navMyList', 'navProfile'];
+
+    function switchScreen(screenId) {
+      // hide all screens
+      screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      // show selected screen
+      document.getElementById(screenId).classList.add('active');
+
+      // update bottom nav active state
+      if (screenId === 'homeScreen') setActiveNav('navHome');
+      else if (screenId === 'searchScreen') setActiveNav('navSearch');
+      else if (screenId === 'myListScreen') setActiveNav('navMyList');
+      else if (screenId === 'profileScreen') setActiveNav('navProfile');
+      else if (screenId === 'detailScreen') setActiveNav(null); // keep home active if needed
+    }
+
+    function setActiveNav(activeId) {
+      navItems.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+      });
+      if (activeId) document.getElementById(activeId)?.classList.add('active');
+    }
+
+    // ---- populate rows with grey card placeholders (no titles) ----
+    const rows = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8', 'row9'];
+    rows.forEach(rowId => {
+      const container = document.getElementById(rowId);
+      if (container) {
+        for (let i = 0; i < 10; i++) {
+          const card = document.createElement('div');
+          card.className = 'card-placeholder';
+          // tap anywhere on card opens movie detail placeholder (for UI flow)
+          card.addEventListener('click', function(e) {
+            e.stopPropagation();
+            switchScreen('detailScreen');
+          });
+          container.appendChild(card);
+        }
+      }
+    });
+
+    // ---- auto-sliding banner (cycle placeholder) ----
+    let bannerIndex = 0;
+    const bannerEl = document.getElementById('bannerSlot');
+    const dots = document.querySelectorAll('.dot');
+    const bannerMessages = [
+      'Featured banner will appear here',
+      'Cinematic spotlight · placeholder',
+      'Now streaming · UI skeleton'
+    ];
+
+    function updateBanner() {
+      if (bannerEl) bannerEl.innerText = bannerMessages[bannerIndex];
+      dots.forEach((dot, i) => {
+        if (i === bannerIndex) dot.classList.add('active-dot');
+        else dot.classList.remove('active-dot');
+      });
+      bannerIndex = (bannerIndex + 1) % bannerMessages.length;
+    }
+    setInterval(updateBanner, 3800); // calm auto-slide
+    // initial banner
+    updateBanner();
+
+    // ---- search category clicks: show empty result message ----
+    function showEmptySearchResult(category) {
+      const placeholderDiv = document.getElementById('searchResultPlaceholder');
+      const textEl = document.getElementById('emptyResultText');
+      if (textEl) textEl.innerText = `"${category}" · Movies will appear here`;
+      placeholderDiv.style.display = 'block';
+    }
+
+    // Clear search field also triggers empty view? just structure.
+    document.getElementById('searchField')?.addEventListener('input', function(e) {
+      if (e.target.value.length > 0) {
+        // show empty placeholder to simulate search result layout
+        document.getElementById('searchResultPlaceholder').style.display = 'block';
+        document.getElementById('emptyResultText').innerText = `Results for "${e.target.value}" will appear here`;
+      } else {
+        document.getElementById('searchResultPlaceholder').style.display = 'none';
+      }
+    });
+
+    // ---- LOGIN MODAL (triggered only by add/like/my-list access) ----
+    const modal = document.getElementById('loginModal');
+
+    window.openLoginModal = function(origin) {
+      // called from: add to list, like, my list button, play disabled, profile google (but mylist already opens)
+      modal.classList.add('active');
+    };
+
+    window.closeLoginModal = function() {
+      modal.classList.remove('active');
+    };
+
+    window.fakeLogin = function() {
+      alert('[UI ONLY] Continue with Google – Firebase ready. (Guest stays guest)');
+      closeLoginModal();
+    };
+
+    // ---- intercept "Add to My List", "Like" from movie detail ----
+    // buttons already call openLoginModal via onclick
+
+    // also when tapping "My List" bottom nav: it opens myListScreen with empty state + google button.
+    // The google button inside myListScreen calls openLoginModal.
+
+    // ---- global click for "Later" button (modal) ----
+    // already in HTML
+
+    // ---- ensure modal closes if clicked outside (backdrop) ----
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeLoginModal();
+    });
+
+    // ---- additional: open movie detail from any card (done via card click) ----
+    // ---- Profile: guest google button ----
+    // google button in profile triggers modal
+
+    // ---- make sure all placeholders look premium ----
+    // ---- also bottom nav My List triggers login? actual rule: open My List -> no login required, but button triggers login. perfect.
+
+    // ---- prefill rows with card listeners again (for detail) ----
+    // already did above
+
+    // ---- for demonstration, "Continue with Google" inside my list and profile open modal ----
+    // attach manually if needed (already done with inline onclick)
+    // attach later button
+    console.log('UI skeleton ready · no forced login · Firebase configured');
+
+    // ---- handle guest navigation: ensure that add / like triggers modal ----
+    // manually add listener to disabled buttons? we used onclick="openLoginModal"
+
+    // ---- prepare firebase config: already defined ----
+  </script>
+
+  <!-- ensure all google buttons trigger login modal -->
+  <script>
+    // reattach any missing listener (safe)
+    document.querySelectorAll('.btn-google').forEach(btn => {
+      if (!btn.hasAttribute('data-listener')) {
+        btn.setAttribute('data-listener', 'true');
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          openLoginModal('google');
         });
+      }
+    });
+  </script>
 
-        // ============================================
-        // LOAD MOVIES FROM FIREBASE - THIS WAS MISSING!
-        // ============================================
-        function loadMoviesFromFirebase() {
-            showLoadingState();
-            
-            const moviesRef = database.ref('movies');
-            
-            moviesRef.on('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    allMovies = [];
-                    snapshot.forEach((childSnapshot) => {
-                        const movie = childSnapshot.val();
-                        movie.id = childSnapshot.key;
-                        allMovies.push(movie);
-                    });
-                    
-                    // Sort by upload date (newest first)
-                    allMovies.sort((a, b) => (b.uploadDate || 0) - (a.uploadDate || 0));
-                    
-                    // Update all sections
-                    updateHomeScreen();
-                    updateSearchResults(allMovies);
-                    updateBannerSlider();
-                    
-                    console.log(`Loaded ${allMovies.length} movies from Firebase`);
-                } else {
-                    console.log('No movies found in Firebase');
-                    showEmptyStates();
-                }
-                
-                hideLoadingState();
-            }, (error) => {
-                console.error('Error loading movies:', error);
-                showErrorMessage('Failed to load movies. Please check your internet connection.');
-                hideLoadingState();
-            });
-        }
-
-        // ============================================
-        // HOME SCREEN FUNCTIONS
-        // ============================================
-        function updateHomeScreen() {
-            // Get movies by category
-            const trending = allMovies.slice(0, 10);
-            const newReleases = allMovies.slice(0, 8);
-            const actionMovies = allMovies.filter(m => m.genre === 'Action').slice(0, 8);
-            
-            // Update rows
-            renderMovieRow('trendingMovies', trending);
-            renderMovieRow('newReleases', newReleases);
-            renderMovieRow('actionMovies', actionMovies);
-            renderMovieRow('allMovies', allMovies.slice(0, 12));
-        }
-
-        function renderMovieRow(containerId, movies) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            if (movies.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">No movies available</div>';
-                return;
-            }
-            
-            movies.forEach(movie => {
-                const card = createMovieCard(movie);
-                container.appendChild(card);
-            });
-        }
-
-        function createMovieCard(movie) {
-            const card = document.createElement('div');
-            card.className = 'movie-card';
-            card.onclick = () => showMovieDetail(movie);
-            
-            const poster = movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Poster';
-            
-            card.innerHTML = `
-                <img src="${poster}" alt="${movie.title}" class="movie-poster" onerror="this.src='https://via.placeholder.com/300x450?text=Poster+Error'">
-                <div class="movie-title-overlay">${movie.title}</div>
-            `;
-            
-            return card;
-        }
-
-        // ============================================
-        // BANNER SLIDER
-        // ============================================
-        function updateBannerSlider() {
-            const bannerContainer = document.getElementById('bannerContainer');
-            const bannerDots = document.getElementById('bannerDots');
-            
-            // Get movies with banner images
-            const bannerMovies = allMovies.filter(m => m.bannerUrl).slice(0, 5);
-            
-            if (bannerMovies.length === 0) {
-                bannerContainer.innerHTML = `
-                    <div class="banner-slide active">
-                        <div class="banner-placeholder" style="display: flex; align-items: center; justify-content: center;">
-                            Welcome to MovieStream
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Clear container
-            bannerContainer.innerHTML = '';
-            
-            // Add slides
-            bannerMovies.forEach((movie, index) => {
-                const slide = document.createElement('div');
-                slide.className = `banner-slide ${index === 0 ? 'active' : ''}`;
-                slide.innerHTML = `
-                    <img src="${movie.bannerUrl}" alt="${movie.title}" class="banner-image" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'banner-placeholder\'>${movie.title}</div>'">
-                    <div class="banner-content">
-                        <div class="banner-info">
-                            <h2 class="banner-title">${movie.title}</h2>
-                            <p class="banner-description">${movie.description || ''}</p>
-                            <button class="banner-btn" onclick="showMovieDetail(${JSON.stringify(movie).replace(/"/g, '&quot;')})">Watch Now</button>
-                        </div>
-                    </div>
-                `;
-                bannerContainer.appendChild(slide);
-            });
-            
-            // Add dots
-            bannerDots.innerHTML = '';
-            bannerMovies.forEach((_, index) => {
-                const dot = document.createElement('div');
-                dot.className = `dot ${index === 0 ? 'active' : ''}`;
-                dot.onclick = () => goToSlide(index);
-                bannerDots.appendChild(dot);
-            });
-            
-            // Start auto-slide
-            startBannerAutoSlide();
-        }
-
-        function startBannerAutoSlide() {
-            if (slideInterval) clearInterval(slideInterval);
-            slideInterval = setInterval(nextSlide, 5000);
-        }
-
-        function nextSlide() {
-            const slides = document.querySelectorAll('.banner-slide');
-            const dots = document.querySelectorAll('.dot');
-            
-            if (slides.length === 0) return;
-            
-            slides[currentSlide].classList.remove('active');
-            dots[currentSlide]?.classList.remove('active');
-            
-            currentSlide = (currentSlide + 1) % slides.length;
-            
-            slides[currentSlide].classList.add('active');
-            dots[currentSlide]?.classList.add('active');
-        }
-
-        function goToSlide(index) {
-            const slides = document.querySelectorAll('.banner-slide');
-            const dots = document.querySelectorAll('.dot');
-            
-            if (slides.length === 0) return;
-            
-            slides[currentSlide].classList.remove('active');
-            dots[currentSlide]?.classList.remove('active');
-            
-            currentSlide = index;
-            
-            slides[currentSlide].classList.add('active');
-            dots[currentSlide]?.classList.add('active');
-            
-            // Reset auto-slide timer
-            startBannerAutoSlide();
-        }
-
-        // ============================================
-        // MOVIE DETAIL FUNCTIONS
-        // ============================================
-        function showMovieDetail(movie) {
-            currentMovie = movie;
-            
-            document.getElementById('detailPoster').innerHTML = `<img src="${movie.posterUrl || 'https://via.placeholder.com/300x450'}" alt="${movie.title}">`;
-            document.getElementById('detailTitle').textContent = movie.title;
-            
-            const year = movie.year || new Date().getFullYear();
-            const duration = movie.duration ? `${movie.duration} min` : '';
-            const genre = movie.genre || '';
-            
-            document.getElementById('detailMeta').innerHTML = `
-                <span>${year}</span>
-                ${duration ? `<span>• ${duration}</span>` : ''}
-                <span>• ${genre}</span>
-            `;
-            
-            document.getElementById('detailDescription').textContent = movie.description || 'No description available.';
-            
-            switchScreen('detail');
-            updateNavActiveState('detail');
-        }
-
-        function playCurrentMovie() {
-            if (!currentMovie || !currentMovie.movieUrl) {
-                alert('No video URL available for this movie');
-                return;
-            }
-            
-            const videoPlayer = document.getElementById('videoPlayer');
-            videoPlayer.src = currentMovie.movieUrl;
-            document.getElementById('videoModal').classList.add('active');
-            videoPlayer.play().catch(e => console.log('Auto-play prevented:', e));
-        }
-
-        function closeVideoPlayer() {
-            const videoPlayer = document.getElementById('videoPlayer');
-            videoPlayer.pause();
-            videoPlayer.src = '';
-            document.getElementById('videoModal').classList.remove('active');
-        }
-
-        // ============================================
-        // SEARCH FUNCTIONS
-        // ============================================
-        function initializeSearch() {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                filterMoviesBySearch(searchTerm);
-            });
-        }
-
-        function initializeGenreFilters() {
-            document.querySelectorAll('.category-tag').forEach(tag => {
-                tag.addEventListener('click', function() {
-                    // Remove active class from all tags
-                    document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
-                    // Add active class to clicked tag
-                    this.classList.add('active');
-                    
-                    const genre = this.dataset.genre;
-                    filterMoviesByGenre(genre);
-                });
-            });
-            
-            // Set "All" as active by default
-            document.querySelector('.category-tag[data-genre="all"]').classList.add('active');
-        }
-
-        function filterMoviesBySearch(searchTerm) {
-            if (!searchTerm) {
-                const activeGenre = document.querySelector('.category-tag.active')?.dataset.genre || 'all';
-                filterMoviesByGenre(activeGenre);
-                return;
-            }
-            
-            const filtered = allMovies.filter(movie => 
-                movie.title.toLowerCase().includes(searchTerm) ||
-                (movie.genre && movie.genre.toLowerCase().includes(searchTerm)) ||
-                (movie.description && movie.description.toLowerCase().includes(searchTerm))
-            );
-            
-            updateSearchResults(filtered);
-        }
-
-        function filterMoviesByGenre(genre) {
-            if (genre === 'all') {
-                updateSearchResults(allMovies);
-            } else {
-                const filtered = allMovies.filter(movie => movie.genre === genre);
-                updateSearchResults(filtered);
-            }
-        }
-
-        function updateSearchResults(movies) {
-            const resultsGrid = document.getElementById('searchResultsGrid');
-            
-            if (movies.length === 0) {
-                resultsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: var(--text-secondary);">No movies found</div>';
-                return;
-            }
-            
-            resultsGrid.innerHTML = '';
-            movies.forEach(movie => {
-                const card = createMovieCard(movie);
-                resultsGrid.appendChild(card);
-            });
-        }
-
-        // ============================================
-        // NAVIGATION FUNCTIONS
-        // ============================================
-        function initializeNavigation() {
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const screenName = item.dataset.screen;
-                    switchScreen(screenName);
-                    updateNavActiveState(screenName);
-                });
-            });
-        }
-
-        function switchScreen(screenName) {
-            Object.values(screens).forEach(screen => {
-                screen.classList.remove('active');
-            });
-            
-            if (screens[screenName]) {
-                screens[screenName].classList.add('active');
-            }
-            
-            // Stop video if leaving detail screen
-            if (screenName !== 'detail') {
-                closeVideoPlayer();
-            }
-        }
-
-        function updateNavActiveState(screenName) {
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-                if (nav.dataset.screen === screenName) {
-                    nav.classList.add('active');
-                }
-            });
-        }
-
-        // ============================================
-        // UTILITY FUNCTIONS
-        // ============================================
-        function showLoadingState() {
-            const containers = ['trendingMovies', 'newReleases', 'actionMovies', 'allMovies', 'searchResultsGrid'];
-            containers.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner"></i></div>';
-                }
-            });
-        }
-
-        function hideLoadingState() {
-            // Loading states are replaced when content is rendered
-        }
-
-        function showEmptyStates() {
-            const containers = ['trendingMovies', 'newReleases', 'actionMovies', 'allMovies'];
-            containers.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.children.length === 0) {
-                    el.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">No movies available</div>';
-                }
-            });
-        }
-
-        function showErrorMessage(message) {
-            console.error(message);
-            // You can add a toast notification here
-        }
-
-        // ============================================
-        // AUTH FUNCTIONS (Basic setup)
-        // ============================================
-        document.getElementById('myListLoginBtn').addEventListener('click', () => {
-            alert('Google Sign-In will be implemented here');
-        });
-        
-        document.getElementById('profileLoginBtn').addEventListener('click', () => {
-            alert('Google Sign-In will be implemented here');
-        });
-        
-        document.getElementById('addToListBtn').addEventListener('click', () => {
-            alert('Please login to add movies to your list');
-        });
-    </script>
+  <!-- subtle: dot indicator initial active -->
+  <style>
+    /* extra polish */
+    .bottom-nav .nav-item.active i, .bottom-nav .nav-item.active span { color: #e50914; }
+    .btn-google i { color: white; }
+  </style>
 </body>
 </html>
