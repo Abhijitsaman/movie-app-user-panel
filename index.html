@@ -3,12 +3,684 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>MovieStream · user panel</title>
+  <title>MovieStream - Watch Movies Online</title>
   <!-- Font Awesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* Your existing styles remain exactly the same */
-    /* ... (keep all your existing CSS) ... */
+    /* ---------- CINEMATIC DARK THEME ---------- */
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+    }
+    
+    body { 
+      background-color: #0b0b0b; 
+      color: #f5f5f5; 
+      padding-bottom: 80px; 
+      min-height: 100vh; 
+      line-height: 1.5; 
+    }
+    
+    .screen { 
+      display: none; 
+      padding: 16px 16px 24px; 
+      animation: fadeTransition 0.25s ease; 
+    }
+    
+    .screen.active { 
+      display: block; 
+    }
+    
+    @keyframes fadeTransition { 
+      0% { opacity: 0.6; } 
+      100% { opacity: 1; } 
+    }
+    
+    h1, h2, h3, h4 { 
+      font-weight: 500; 
+      letter-spacing: -0.01em; 
+    }
+    
+    .text-muted { 
+      color: #a0a0a0; 
+      font-size: 0.9rem; 
+    }
+    
+    .app-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 12px 0 8px; 
+      margin-bottom: 6px; 
+    }
+    
+    .logo { 
+      font-size: 1.8rem; 
+      font-weight: 700; 
+      color: #e50914; 
+      letter-spacing: -0.5px; 
+    }
+    
+    .icon-btn { 
+      background: transparent; 
+      border: none; 
+      color: white; 
+      font-size: 1.3rem; 
+      padding: 8px; 
+      border-radius: 50%; 
+      transition: background 0.15s; 
+      cursor: pointer; 
+    }
+    
+    .icon-btn:active { 
+      background: rgba(255,255,255,0.1); 
+    }
+    
+    .banner-container { 
+      margin: 8px 0 20px; 
+      border-radius: 12px; 
+      overflow: hidden; 
+      position: relative;
+      height: 200px;
+    }
+    
+    .banner-slide {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .banner-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      padding: 30px 20px 20px;
+    }
+    
+    .banner-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    
+    .banner-genre {
+      color: #ddd;
+      font-size: 0.9rem;
+    }
+    
+    .dot-indicator { 
+      display: flex; 
+      justify-content: center; 
+      gap: 8px; 
+      margin-top: 12px; 
+    }
+    
+    .dot { 
+      width: 8px; 
+      height: 8px; 
+      border-radius: 4px; 
+      background: #404040; 
+      transition: all 0.2s; 
+      cursor: pointer;
+    }
+    
+    .dot.active-dot { 
+      background: #e50914; 
+      width: 20px; 
+    }
+    
+    .row-section { 
+      margin-bottom: 28px; 
+    }
+    
+    .row-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: baseline; 
+      margin-bottom: 12px; 
+    }
+    
+    .row-title { 
+      font-size: 1.2rem; 
+      font-weight: 600; 
+      color: #f0f0f0; 
+    }
+    
+    .scroll-row { 
+      display: flex; 
+      gap: 12px; 
+      overflow-x: auto; 
+      overflow-y: hidden; 
+      padding-bottom: 8px; 
+      scrollbar-width: thin; 
+      scrollbar-color: #505050 #1a1a1a; 
+    }
+    
+    .scroll-row::-webkit-scrollbar { 
+      height: 4px; 
+    }
+    
+    .scroll-row::-webkit-scrollbar-thumb { 
+      background: #505050; 
+      border-radius: 8px; 
+    }
+    
+    .movie-card {
+      flex: 0 0 140px;
+      height: 200px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    
+    .movie-card:hover {
+      transform: scale(1.05);
+    }
+    
+    .movie-card:active {
+      transform: scale(0.98);
+    }
+    
+    .movie-poster {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .movie-title-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    @media (min-width: 480px) { 
+      .movie-card { 
+        flex-basis: 160px; 
+        height: 220px; 
+      } 
+    }
+    
+    .search-input-wrapper { 
+      background: #1e1e1e; 
+      border-radius: 30px; 
+      padding: 4px 20px; 
+      margin: 20px 0 28px; 
+      display: flex; 
+      align-items: center; 
+      border: 1px solid #2c2c2c; 
+    }
+    
+    .search-input-wrapper i { 
+      color: #909090; 
+      margin-right: 12px; 
+    }
+    
+    #searchField { 
+      background: transparent; 
+      border: none; 
+      padding: 14px 0; 
+      color: white; 
+      font-size: 1rem; 
+      width: 100%; 
+      outline: none; 
+    }
+    
+    #searchField::placeholder { 
+      color: #6c6c6c; 
+      font-weight: 300; 
+    }
+    
+    .categories-grid { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 12px; 
+      margin-top: 12px; 
+    }
+    
+    .category-chip { 
+      background: #1c1c1c; 
+      padding: 10px 18px; 
+      border-radius: 30px; 
+      font-size: 0.9rem; 
+      color: #e0e0e0; 
+      transition: background 0.15s, color 0.15s; 
+      border: none; 
+      cursor: pointer; 
+    }
+    
+    .category-chip:active { 
+      background: #e50914; 
+      color: white; 
+    }
+    
+    .search-results {
+      margin-top: 20px;
+    }
+    
+    .search-result-item {
+      background: #2a2a2a;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .search-result-item:active {
+      background: #3a3a3a;
+    }
+    
+    .search-result-poster {
+      width: 50px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    
+    .search-result-info {
+      flex: 1;
+      text-align: left;
+    }
+    
+    .search-result-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .search-result-meta {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+    
+    .empty-placeholder { 
+      background: #181818; 
+      border-radius: 20px; 
+      padding: 40px 24px; 
+      text-align: center; 
+      color: #9a9a9a; 
+      margin: 32px 0; 
+      border: 1px dashed #3a3a3a; 
+    }
+    
+    .empty-state { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 70vh; 
+      text-align: center; 
+      padding: 24px; 
+    }
+    
+    .empty-icon { 
+      font-size: 3.2rem; 
+      color: #424242; 
+      margin-bottom: 20px; 
+    }
+    
+    .btn-google { 
+      background: #e50914; 
+      border: none; 
+      color: white; 
+      font-size: 1rem; 
+      font-weight: 600; 
+      padding: 14px 30px; 
+      border-radius: 40px; 
+      margin-top: 24px; 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 12px; 
+      box-shadow: 0 6px 12px rgba(229,9,20,0.2); 
+      transition: all 0.18s; 
+      border: none; 
+      cursor: pointer; 
+    }
+    
+    .btn-google:active { 
+      background: #b20710; 
+      transform: scale(0.96); 
+    }
+    
+    .btn-later { 
+      background: transparent; 
+      border: 1px solid #5a5a5a; 
+      color: #ddd; 
+      padding: 12px 28px; 
+      border-radius: 40px; 
+      font-weight: 500; 
+      margin-left: 12px; 
+      cursor: pointer; 
+    }
+    
+    .profile-guest { 
+      background: #141414; 
+      padding: 32px 20px; 
+      border-radius: 24px; 
+      text-align: center; 
+      max-width: 360px; 
+      margin: 40px auto; 
+      transition: 0.2s; 
+    }
+    
+    .profile-icon { 
+      font-size: 4rem; 
+      color: #6a6a6a; 
+      margin-bottom: 16px; 
+    }
+    
+    .profile-avatar { 
+      width: 80px; 
+      height: 80px; 
+      border-radius: 50%; 
+      margin-bottom: 16px; 
+      border: 3px solid #e50914; 
+      object-fit: cover; 
+    }
+    
+    .profile-user-name { 
+      font-size: 1.8rem; 
+      font-weight: 600; 
+      margin-bottom: 4px; 
+    }
+    
+    .profile-user-email { 
+      color: #b0b0b0; 
+      margin-bottom: 20px; 
+    }
+    
+    .detail-container {
+      padding-bottom: 30px;
+    }
+    
+    .detail-poster {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 20px;
+      margin: 16px 0 20px;
+    }
+    
+    .detail-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+    
+    .detail-meta {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      color: #aaa;
+    }
+    
+    .detail-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .detail-genre {
+      background: #e50914;
+      padding: 5px 15px;
+      border-radius: 20px;
+      color: white;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    
+    .detail-description {
+      color: #ddd;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+    
+    .button-row { 
+      display: flex; 
+      gap: 16px; 
+      margin: 32px 0 20px; 
+    }
+    
+    .play-btn {
+      flex: 2;
+      background: #e50914;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .add-btn {
+      flex: 1;
+      background: #2c2c2c;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    
+    .trailer-section {
+      margin-top: 30px;
+    }
+    
+    .trailer-title {
+      margin-bottom: 15px;
+    }
+    
+    .trailer-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    
+    .trailer-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .bottom-nav { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      width: 100%; 
+      background: #0c0c0c; 
+      display: flex; 
+      justify-content: space-around; 
+      align-items: center; 
+      padding: 12px 8px 18px; 
+      border-top: 1px solid #222; 
+      backdrop-filter: blur(10px); 
+      z-index: 1000; 
+    }
+    
+    .nav-item { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 6px; 
+      color: #909090; 
+      font-size: 0.75rem; 
+      background: transparent; 
+      border: none; 
+      padding: 6px 12px; 
+      border-radius: 12px; 
+      transition: color 0.1s, background 0.1s; 
+      cursor: pointer; 
+    }
+    
+    .nav-item i { 
+      font-size: 1.3rem; 
+    }
+    
+    .nav-item.active { 
+      color: #e50914; 
+    }
+    
+    .nav-item:active { 
+      background: rgba(229,9,20,0.1); 
+    }
+    
+    .modal-overlay { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background-color: rgba(0,0,0,0.8); 
+      display: none; 
+      justify-content: center; 
+      align-items: flex-end; 
+      z-index: 2000; 
+      transition: 0.2s; 
+    }
+    
+    .modal-overlay.active { 
+      display: flex; 
+    }
+    
+    .login-sheet { 
+      background: #1a1a1a; 
+      width: 100%; 
+      border-radius: 28px 28px 0 0; 
+      padding: 36px 24px 32px; 
+      text-align: center; 
+      animation: slideUp 0.25s ease; 
+    }
+    
+    @keyframes slideUp { 
+      from { transform: translateY(20px); opacity: 0.7; } 
+      to { transform: translateY(0); opacity: 1; } 
+    }
+    
+    .login-sheet h3 { 
+      font-size: 1.5rem; 
+      margin-bottom: 10px; 
+    }
+    
+    .login-sheet p { 
+      color: #b8b8b8; 
+      margin-bottom: 28px; 
+    }
+    
+    .button-group { 
+      display: flex; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+      gap: 16px; 
+    }
+    
+    .d-none { 
+      display: none !important; 
+    }
+    
+    .my-list-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    .my-list-item {
+      background: #1f1f1f;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    
+    .my-list-poster {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    
+    .my-list-info {
+      padding: 10px;
+    }
+    
+    .my-list-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    
+    .my-list-genre {
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #e50914;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      z-index: 9999;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      animation: slideUp 0.3s ease;
+    }
+    
+    .toast.info {
+      background: #2a2a2a;
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateX(-50%) translateY(0); }
+      to { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #333;
+      border-top: 4px solid #e50914;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 50px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -16,10 +688,185 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  
-  <!-- ============ YOUR EXISTING HTML STRUCTURE ============ -->
-  <!-- Keep all your HTML structure exactly as is -->
-  <!-- ... (all screens, navigation, modals) ... -->
+
+  <!-- ============ HOME SCREEN ============ -->
+  <div id="homeScreen" class="screen active">
+    <div class="app-header">
+      <span class="logo">MOVIESTREAM</span>
+      <i class="fas fa-search icon-btn" onclick="switchScreen('searchScreen');"></i>
+    </div>
+    
+    <div class="banner-container" id="bannerContainer">
+      <div id="bannerSlide" class="banner-slide" style="background-image: linear-gradient(to right, #000, #333);">
+        <div class="banner-overlay">
+          <div class="banner-title">Loading movies...</div>
+          <div class="banner-genre">Please wait</div>
+        </div>
+      </div>
+    </div>
+    <div class="dot-indicator" id="bannerDots">
+      <span class="dot active-dot"></span>
+    </div>
+
+    <!-- Movie Rows -->
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Continue Watching</span>
+      </div>
+      <div class="scroll-row" id="row1"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Trending Now</span>
+      </div>
+      <div class="scroll-row" id="row2"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">New Releases</span>
+      </div>
+      <div class="scroll-row" id="row3"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Action Movies</span>
+      </div>
+      <div class="scroll-row" id="row4"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Comedy Movies</span>
+      </div>
+      <div class="scroll-row" id="row5"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Drama Movies</span>
+      </div>
+      <div class="scroll-row" id="row6"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Horror Movies</span>
+      </div>
+      <div class="scroll-row" id="row7"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Sci-Fi Movies</span>
+      </div>
+      <div class="scroll-row" id="row8"></div>
+    </div>
+    
+    <div class="row-section">
+      <div class="row-header">
+        <span class="row-title">Romance Movies</span>
+      </div>
+      <div class="scroll-row" id="row9"></div>
+    </div>
+  </div>
+
+  <!-- ============ SEARCH SCREEN ============ -->
+  <div id="searchScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Search</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    
+    <div class="search-input-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchField" placeholder="Search movies by title or genre">
+    </div>
+    
+    <div style="margin-bottom: 12px;">
+      <span class="text-muted">Popular categories</span>
+    </div>
+    
+    <div class="categories-grid" id="categoriesGrid">
+      <span class="category-chip" onclick="searchByCategory('Action')">Action</span>
+      <span class="category-chip" onclick="searchByCategory('Comedy')">Comedy</span>
+      <span class="category-chip" onclick="searchByCategory('Drama')">Drama</span>
+      <span class="category-chip" onclick="searchByCategory('Horror')">Horror</span>
+      <span class="category-chip" onclick="searchByCategory('Sci-Fi')">Sci-Fi</span>
+      <span class="category-chip" onclick="searchByCategory('Romance')">Romance</span>
+      <span class="category-chip" onclick="searchByCategory('Thriller')">Thriller</span>
+      <span class="category-chip" onclick="searchByCategory('Animation')">Animation</span>
+      <span class="category-chip" onclick="searchByCategory('Adventure')">Adventure</span>
+    </div>
+    
+    <div id="searchResults" class="search-results"></div>
+  </div>
+
+  <!-- ============ MY LIST SCREEN ============ -->
+  <div id="myListScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">My List</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div id="myListContent"></div>
+  </div>
+
+  <!-- ============ PROFILE SCREEN ============ -->
+  <div id="profileScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Profile</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div id="profileContent"></div>
+  </div>
+
+  <!-- ============ DETAIL SCREEN ============ -->
+  <div id="detailScreen" class="screen">
+    <div class="app-header">
+      <span class="logo" style="font-size:1.6rem;">Movie Details</span>
+      <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
+    </div>
+    <div id="detailContent" class="detail-container">
+      <!-- Movie details will be loaded here -->
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM NAVIGATION ============ -->
+  <div class="bottom-nav">
+    <button class="nav-item active" id="navHome" onclick="switchScreen('homeScreen');">
+      <i class="fas fa-home"></i>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" id="navSearch" onclick="switchScreen('searchScreen');">
+      <i class="fas fa-search"></i>
+      <span>Search</span>
+    </button>
+    <button class="nav-item" id="navMyList" onclick="switchScreen('myListScreen');">
+      <i class="fas fa-list"></i>
+      <span>My List</span>
+    </button>
+    <button class="nav-item" id="navProfile" onclick="switchScreen('profileScreen');">
+      <i class="fas fa-user"></i>
+      <span>Profile</span>
+    </button>
+  </div>
+
+  <!-- ============ LOGIN MODAL ============ -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="login-sheet">
+      <i class="fas fa-user-lock" style="font-size: 2.5rem; color: #e50914; margin-bottom: 8px;"></i>
+      <h3>Sign in to continue</h3>
+      <p>You need an account to save movies to your list</p>
+      <div class="button-group">
+        <button class="btn-google" id="googleSignInBtn">
+          <i class="fab fa-google"></i> Continue with Google
+        </button>
+        <button class="btn-later" onclick="closeLoginModal()">Later</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Firebase configuration
@@ -38,10 +885,13 @@
     const database = firebase.database();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    // ==================== GLOBAL STATE ====================
+    // Global variables
     let currentUser = null;
-    let allMovies = []; // Store all movies from Firebase
+    let allMovies = [];
     let filteredMovies = [];
+    let currentMovie = null;
+    let bannerInterval;
+    let currentBannerIndex = 0;
 
     // ==================== SCREEN NAVIGATION ====================
     const screens = ['homeScreen', 'searchScreen', 'myListScreen', 'profileScreen', 'detailScreen'];
@@ -51,22 +901,27 @@
       screens.forEach(id => document.getElementById(id).classList.remove('active'));
       document.getElementById(screenId).classList.add('active');
       
-      if (screenId === 'homeScreen') setActiveNav('navHome');
-      else if (screenId === 'searchScreen') setActiveNav('navSearch');
-      else if (screenId === 'myListScreen') setActiveNav('navMyList');
-      else if (screenId === 'profileScreen') setActiveNav('navProfile');
-      
-      // Refresh content when switching screens
       if (screenId === 'homeScreen') {
+        setActiveNav('navHome');
         loadMoviesToHome();
-        startBannerRotation();
+      } else if (screenId === 'searchScreen') {
+        setActiveNav('navSearch');
+        document.getElementById('searchResults').innerHTML = '';
+        document.getElementById('searchField').value = '';
+      } else if (screenId === 'myListScreen') {
+        setActiveNav('navMyList');
+        renderMyListScreen();
+      } else if (screenId === 'profileScreen') {
+        setActiveNav('navProfile');
+        renderProfileScreen();
       }
-      if (screenId === 'myListScreen') renderMyListScreen();
-      if (screenId === 'profileScreen') renderProfileScreen();
     }
 
     function setActiveNav(activeId) {
-      navItems.forEach(id => document.getElementById(id)?.classList.remove('active'));
+      navItems.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
       if (activeId) document.getElementById(activeId)?.classList.add('active');
     }
 
@@ -83,73 +938,50 @@
             allMovies.push(movie);
           });
           
-          console.log(`Loaded ${allMovies.length} movies from Firebase`);
+          console.log(`Loaded ${allMovies.length} movies`);
           
-          // Update UI based on current screen
+          // Update UI
           if (document.getElementById('homeScreen').classList.contains('active')) {
             loadMoviesToHome();
           }
-          
-          // Update search if active
-          if (document.getElementById('searchScreen').classList.contains('active')) {
-            // Search will be handled by input
-          }
-          
-          // Update banner with actual movies
-          updateBannerWithMovies();
+          updateBanner();
           
         } else {
-          console.log('No movies found in Firebase');
+          console.log('No movies found');
           allMovies = [];
           showEmptyStates();
         }
-      }, (error) => {
-        console.error('Error loading movies:', error);
-        showToast('Failed to load movies. Please check your connection.', 'error');
       });
     }
 
-    // ==================== LOAD MOVIES TO HOME SCREEN ROWS ====================
     function loadMoviesToHome() {
-      if (allMovies.length === 0) {
-        // Show empty placeholders
-        createEmptyRows();
-        return;
-      }
-
-      // Sort movies by upload date (newest first)
-      const sortedMovies = [...allMovies].sort((a, b) => 
-        (b.uploadDate || b.createdAt || 0) - (a.uploadDate || a.createdAt || 0)
-      );
-
-      // Populate rows based on categories
       const rows = [
-        { id: 'row1', title: 'Continue Watching', filter: () => sortedMovies.slice(0, 10) }, // Recently added as "Continue Watching"
-        { id: 'row2', title: 'Trending Now', filter: () => sortedMovies.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10) },
-        { id: 'row3', title: 'New Releases', filter: () => sortedMovies.slice(0, 10) },
-        { id: 'row4', title: 'Popular Movies', filter: () => sortedMovies.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10) },
-        { id: 'row5', title: 'Top Rated', filter: () => sortedMovies.sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10) },
-        { id: 'row6', title: 'Action Movies', filter: () => sortedMovies.filter(m => m.genre === 'Action').slice(0, 10) },
-        { id: 'row7', title: 'Drama Movies', filter: () => sortedMovies.filter(m => m.genre === 'Drama').slice(0, 10) },
-        { id: 'row8', title: 'Comedy Movies', filter: () => sortedMovies.filter(m => m.genre === 'Comedy').slice(0, 10) },
-        { id: 'row9', title: 'Horror Movies', filter: () => sortedMovies.filter(m => m.genre === 'Horror').slice(0, 10) }
+        { id: 'row1', title: 'Continue Watching', filter: (m) => m },
+        { id: 'row2', title: 'Trending Now', filter: (m) => [...m].sort((a, b) => (b.views || 0) - (a.views || 0)) },
+        { id: 'row3', title: 'New Releases', filter: (m) => [...m].sort((a, b) => (b.uploadDate || 0) - (a.uploadDate || 0)) },
+        { id: 'row4', title: 'Action Movies', filter: (m) => m.filter(movie => movie.genre === 'Action') },
+        { id: 'row5', title: 'Comedy Movies', filter: (m) => m.filter(movie => movie.genre === 'Comedy') },
+        { id: 'row6', title: 'Drama Movies', filter: (m) => m.filter(movie => movie.genre === 'Drama') },
+        { id: 'row7', title: 'Horror Movies', filter: (m) => m.filter(movie => movie.genre === 'Horror') },
+        { id: 'row8', title: 'Sci-Fi Movies', filter: (m) => m.filter(movie => movie.genre === 'Sci-Fi') },
+        { id: 'row9', title: 'Romance Movies', filter: (m) => m.filter(movie => movie.genre === 'Romance') }
       ];
 
       rows.forEach(row => {
         const container = document.getElementById(row.id);
         if (!container) return;
         
-        container.innerHTML = ''; // Clear existing content
+        container.innerHTML = '';
         
-        const movies = row.filter();
+        let movies = row.filter(allMovies);
+        movies = movies.slice(0, 15); // Limit to 15 movies per row
         
         if (movies.length === 0) {
-          // Show placeholder if no movies for this category
-          for (let i = 0; i < 5; i++) {
+          // Show placeholder
+          for (let i = 0; i < 8; i++) {
             container.appendChild(createPlaceholderCard());
           }
         } else {
-          // Show actual movie cards
           movies.forEach(movie => {
             container.appendChild(createMovieCard(movie));
           });
@@ -159,48 +991,33 @@
 
     function createMovieCard(movie) {
       const card = document.createElement('div');
-      card.className = 'card-placeholder';
-      card.style.backgroundImage = `url(${movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Poster'})`;
-      card.style.backgroundSize = 'cover';
-      card.style.backgroundPosition = 'center';
-      card.style.position = 'relative';
+      card.className = 'movie-card';
+      card.onclick = () => showMovieDetails(movie);
       
-      // Add title overlay
+      const poster = document.createElement('img');
+      poster.className = 'movie-poster';
+      poster.src = movie.posterUrl || 'https://via.placeholder.com/300x450?text=No+Poster';
+      poster.onerror = () => { poster.src = 'https://via.placeholder.com/300x450?text=No+Poster'; };
+      
       const titleOverlay = document.createElement('div');
-      titleOverlay.style.position = 'absolute';
-      titleOverlay.style.bottom = '0';
-      titleOverlay.style.left = '0';
-      titleOverlay.style.right = '0';
-      titleOverlay.style.padding = '8px';
-      titleOverlay.style.background = 'linear-gradient(transparent, rgba(0,0,0,0.9))';
-      titleOverlay.style.color = 'white';
-      titleOverlay.style.fontSize = '0.8rem';
-      titleOverlay.style.fontWeight = '600';
-      titleOverlay.style.borderRadius = '0 0 12px 12px';
+      titleOverlay.className = 'movie-title-overlay';
       titleOverlay.textContent = movie.title;
       
+      card.appendChild(poster);
       card.appendChild(titleOverlay);
-      
-      card.addEventListener('click', () => {
-        showMovieDetails(movie);
-      });
       
       return card;
     }
 
     function createPlaceholderCard() {
       const card = document.createElement('div');
-      card.className = 'card-placeholder';
-      card.style.backgroundColor = '#1f1f1f';
-      card.style.backgroundImage = 'none';
-      card.addEventListener('click', () => {
-        showToast('No movie available', 'info');
-      });
+      card.className = 'movie-card';
+      card.style.background = '#1f1f1f';
       return card;
     }
 
-    function createEmptyRows() {
-      const rows = ['row1','row2','row3','row4','row5','row6','row7','row8','row9'];
+    function showEmptyStates() {
+      const rows = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8', 'row9'];
       rows.forEach(rowId => {
         const container = document.getElementById(rowId);
         if (container) {
@@ -212,172 +1029,18 @@
       });
     }
 
-    // ==================== SHOW MOVIE DETAILS ====================
-    function showMovieDetails(movie) {
-      // Switch to detail screen
-      switchScreen('detailScreen');
-      
-      // Populate detail screen with movie data
-      const detailScreen = document.getElementById('detailScreen');
-      
-      // Update view count in Firebase
-      const movieRef = database.ref(`movies/${movie.id}`);
-      movieRef.update({
-        views: (movie.views || 0) + 1
-      });
-      
-      // Create detailed view
-      detailScreen.innerHTML = `
-        <div class="app-header">
-          <span class="logo" style="font-size:1.6rem;">${movie.title}</span>
-          <i class="fas fa-arrow-left icon-btn" onclick="switchScreen('homeScreen');"></i>
-        </div>
-        
-        <div class="detail-poster-block" style="background-image: url(${movie.posterUrl}); background-size: cover; background-position: center;"></div>
-        
-        <h2 style="margin: 20px 0 10px;">${movie.title}</h2>
-        
-        <div style="display: flex; gap: 15px; margin-bottom: 15px; color: #aaa;">
-          <span><i class="fas fa-calendar"></i> ${movie.year || '2024'}</span>
-          <span><i class="fas fa-clock"></i> ${movie.duration || '120'} min</span>
-          <span><i class="fas fa-star"></i> ${movie.rating || '0'}/10</span>
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <span class="movie-genre" style="background: #e50914; padding: 5px 12px; border-radius: 20px; color: white;">${movie.genre}</span>
-        </div>
-        
-        <p style="color: #ddd; line-height: 1.6; margin-bottom: 25px;">${movie.description}</p>
-        
-        <div class="button-row">
-          <button class="btn-google" style="flex: 2;" onclick="playMovie('${movie.movieUrl}')">
-            <i class="fas fa-play"></i> Play Now
-          </button>
-          <button class="btn-later" style="flex: 1;" onclick="handleProtectedAction('add', '${movie.id}')">
-            <i class="fas fa-plus"></i>
-          </button>
-        </div>
-        
-        ${movie.trailerUrl ? `
-          <div style="margin-top: 30px;">
-            <h3 style="margin-bottom: 15px;">Trailer</h3>
-            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px;">
-              <iframe src="${convertToEmbedUrl(movie.trailerUrl)}" 
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
-                allowfullscreen>
-              </iframe>
-            </div>
-          </div>
-        ` : ''}
-      `;
-    }
-
-    function playMovie(url) {
-      if (!url) {
-        showToast('Movie URL not available', 'error');
-        return;
-      }
-      
-      // Open in new tab or create video player
-      window.open(url, '_blank');
-    }
-
-    // ==================== SEARCH FUNCTIONALITY ====================
-    document.getElementById('searchField')?.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      const placeholder = document.getElementById('searchResultPlaceholder');
-      const categoriesGrid = document.querySelector('.categories-grid');
-      
-      if (searchTerm.length > 0) {
-        // Hide categories, show search results
-        categoriesGrid.style.display = 'none';
-        placeholder.style.display = 'block';
-        
-        // Search in movies
-        const results = allMovies.filter(movie => 
-          movie.title.toLowerCase().includes(searchTerm) ||
-          movie.genre.toLowerCase().includes(searchTerm) ||
-          (movie.description && movie.description.toLowerCase().includes(searchTerm))
-        );
-        
-        if (results.length > 0) {
-          document.getElementById('emptyResultText').innerHTML = `
-            Found ${results.length} result${results.length > 1 ? 's' : ''} for "${e.target.value}"
-            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-              ${results.map(movie => `
-                <div onclick="showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
-                     style="background: #2a2a2a; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                  <img src="${movie.posterUrl}" style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px;" onerror="this.src='https://via.placeholder.com/50x70'">
-                  <div style="text-align: left;">
-                    <div style="font-weight: 600;">${movie.title}</div>
-                    <div style="font-size: 0.8rem; color: #aaa;">${movie.genre} · ${movie.year || '2024'}</div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          `;
-        } else {
-          document.getElementById('emptyResultText').innerHTML = `No results found for "${e.target.value}"`;
-        }
-      } else {
-        // Show categories, hide results
-        categoriesGrid.style.display = 'flex';
-        placeholder.style.display = 'none';
-      }
-    });
-
-    window.showEmptySearchResult = function(category) {
-      const placeholderDiv = document.getElementById('searchResultPlaceholder');
-      const categoriesGrid = document.querySelector('.categories-grid');
-      
-      categoriesGrid.style.display = 'none';
-      placeholderDiv.style.display = 'block';
-      
-      // Filter movies by category
-      const results = allMovies.filter(movie => movie.genre === category);
-      
-      if (results.length > 0) {
-        document.getElementById('emptyResultText').innerHTML = `
-          <div style="margin-bottom: 15px;">${category} Movies (${results.length})</div>
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${results.map(movie => `
-              <div onclick="showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
-                   style="background: #2a2a2a; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                <img src="${movie.posterUrl}" style="width: 50px; height: 70px; object-fit: cover; border-radius: 4px;" onerror="this.src='https://via.placeholder.com/50x70'">
-                <div style="text-align: left;">
-                  <div style="font-weight: 600;">${movie.title}</div>
-                  <div style="font-size: 0.8rem; color: #aaa;">${movie.year || '2024'}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } else {
-        document.getElementById('emptyResultText').innerHTML = `No ${category} movies available yet`;
-      }
-    };
-
-    // ==================== BANNER WITH MOVIES ====================
-    let bannerInterval;
-    let currentBannerIndex = 0;
-
-    function updateBannerWithMovies() {
-      const bannerEl = document.getElementById('bannerSlot');
+    // ==================== BANNER ====================
+    function updateBanner() {
+      const bannerMovies = allMovies.filter(m => m.bannerUrl || m.posterUrl).slice(0, 5);
       const dotsContainer = document.getElementById('bannerDots');
       
-      if (!bannerEl || !dotsContainer) return;
-      
-      // Get movies with banner images
-      const moviesWithBanner = allMovies.filter(m => m.bannerUrl || m.posterUrl);
-      
-      if (moviesWithBanner.length === 0) {
-        bannerEl.innerHTML = '<div class="banner-placeholder">Featured movies will appear here</div>';
+      if (bannerMovies.length === 0) {
+        document.getElementById('bannerSlide').style.backgroundImage = 'linear-gradient(to right, #000, #333)';
+        document.querySelector('.banner-title').textContent = 'Welcome to MovieStream';
+        document.querySelector('.banner-genre').textContent = 'Add movies from admin panel';
         dotsContainer.innerHTML = '<span class="dot active-dot"></span>';
         return;
       }
-      
-      // Create banner HTML
-      const bannerMovies = moviesWithBanner.slice(0, 5);
       
       // Create dots
       dotsContainer.innerHTML = bannerMovies.map((_, i) => 
@@ -385,30 +1048,25 @@
       ).join('');
       
       // Show first banner
-      showBannerAtIndex(0, bannerMovies);
+      showBanner(0, bannerMovies);
       
-      // Clear existing interval
+      // Start rotation
       if (bannerInterval) clearInterval(bannerInterval);
-      
-      // Start auto rotation
       bannerInterval = setInterval(() => {
         currentBannerIndex = (currentBannerIndex + 1) % bannerMovies.length;
-        showBannerAtIndex(currentBannerIndex, bannerMovies);
+        showBanner(currentBannerIndex, bannerMovies);
       }, 5000);
     }
 
-    function showBannerAtIndex(index, movies) {
-      const bannerEl = document.getElementById('bannerSlot');
+    function showBanner(index, movies) {
       const movie = movies[index];
+      const slide = document.getElementById('bannerSlide');
       
-      bannerEl.innerHTML = `
-        <div style="width: 100%; height: 100%; background-image: url(${movie.bannerUrl || movie.posterUrl}); background-size: cover; background-position: center; display: flex; align-items: flex-end; padding: 20px; cursor: pointer;" onclick="showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-          <div style="background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 20px; width: 100%; border-radius: 0 0 12px 12px;">
-            <h3 style="color: white; margin-bottom: 5px;">${movie.title}</h3>
-            <p style="color: #ddd; font-size: 0.9rem;">${movie.genre} · ${movie.year || '2024'}</p>
-          </div>
-        </div>
-      `;
+      slide.style.backgroundImage = `url(${movie.bannerUrl || movie.posterUrl})`;
+      slide.onclick = () => showMovieDetails(movie);
+      
+      document.querySelector('.banner-title').textContent = movie.title;
+      document.querySelector('.banner-genre').textContent = movie.genre;
       
       // Update dots
       document.querySelectorAll('.dot').forEach((dot, i) => {
@@ -419,89 +1077,149 @@
     }
 
     function setBannerIndex(index) {
-      const moviesWithBanner = allMovies.filter(m => m.bannerUrl || m.posterUrl).slice(0, 5);
-      showBannerAtIndex(index, moviesWithBanner);
+      const bannerMovies = allMovies.filter(m => m.bannerUrl || m.posterUrl).slice(0, 5);
+      showBanner(index, bannerMovies);
+      if (bannerInterval) {
+        clearInterval(bannerInterval);
+        bannerInterval = setInterval(() => {
+          currentBannerIndex = (currentBannerIndex + 1) % bannerMovies.length;
+          showBanner(currentBannerIndex, bannerMovies);
+        }, 5000);
+      }
     }
 
-    function startBannerRotation() {
-      // Banner rotation is handled in updateBannerWithMovies
-    }
-
-    // ==================== UTILITY FUNCTIONS ====================
-    function convertToEmbedUrl(url) {
-      if (!url) return '';
+    // ==================== MOVIE DETAILS ====================
+    function showMovieDetails(movie) {
+      currentMovie = movie;
+      switchScreen('detailScreen');
       
-      // YouTube
+      // Update view count
+      const movieRef = database.ref(`movies/${movie.id}`);
+      movieRef.update({
+        views: (movie.views || 0) + 1
+      });
+      
+      const container = document.getElementById('detailContent');
+      
+      container.innerHTML = `
+        <img src="${movie.posterUrl || 'https://via.placeholder.com/300x450'}" class="detail-poster" onerror="this.src='https://via.placeholder.com/300x450'">
+        
+        <h1 class="detail-title">${movie.title}</h1>
+        
+        <div class="detail-meta">
+          <span class="detail-meta-item"><i class="fas fa-calendar"></i> ${movie.year || '2024'}</span>
+          <span class="detail-meta-item"><i class="fas fa-clock"></i> ${movie.duration || '120'} min</span>
+          <span class="detail-meta-item"><i class="fas fa-star"></i> ${movie.rating || '0'}/10</span>
+        </div>
+        
+        <div class="detail-genre">${movie.genre}</div>
+        
+        <p class="detail-description">${movie.description}</p>
+        
+        <div class="button-row">
+          <button class="play-btn" onclick="playMovie('${movie.movieUrl}')">
+            <i class="fas fa-play"></i> Play Now
+          </button>
+          <button class="add-btn" onclick="addToMyList('${movie.id}')">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+        
+        ${movie.trailerUrl ? `
+          <div class="trailer-section">
+            <h3 class="trailer-title">Trailer</h3>
+            <div class="trailer-container">
+              <iframe class="trailer-frame" src="${getEmbedUrl(movie.trailerUrl)}" allowfullscreen></iframe>
+            </div>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function playMovie(url) {
+      if (!url) {
+        showToast('Movie URL not available');
+        return;
+      }
+      window.open(url, '_blank');
+    }
+
+    function getEmbedUrl(url) {
       if (url.includes('youtube.com/watch?v=')) {
         const videoId = url.split('v=')[1].split('&')[0];
         return `https://www.youtube.com/embed/${videoId}`;
       } else if (url.includes('youtu.be/')) {
         const videoId = url.split('youtu.be/')[1].split('?')[0];
         return `https://www.youtube.com/embed/${videoId}`;
-      }
-      // Vimeo
-      else if (url.includes('vimeo.com/')) {
+      } else if (url.includes('vimeo.com/')) {
         const videoId = url.split('vimeo.com/')[1].split('?')[0];
         return `https://player.vimeo.com/video/${videoId}`;
       }
-      // Default - return as is
       return url;
     }
 
-    function showToast(message, type = 'info') {
-      // Create toast element
-      const toast = document.createElement('div');
-      toast.style.cssText = `
-        position: fixed;
-        bottom: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${type === 'error' ? '#e50914' : '#2a2a2a'};
-        color: white;
-        padding: 12px 24px;
-        border-radius: 30px;
-        z-index: 9999;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        animation: slideUp 0.3s ease;
-      `;
-      toast.textContent = message;
-      
-      document.body.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+    // ==================== SEARCH ====================
+    document.getElementById('searchField').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      performSearch(searchTerm);
+    });
+
+    function searchByCategory(category) {
+      document.getElementById('categoriesGrid').style.display = 'none';
+      document.getElementById('searchField').value = category;
+      performSearch(category.toLowerCase());
     }
 
-    function showEmptyStates() {
-      createEmptyRows();
+    function performSearch(searchTerm) {
+      const resultsContainer = document.getElementById('searchResults');
+      
+      if (!searchTerm) {
+        resultsContainer.innerHTML = '';
+        document.getElementById('categoriesGrid').style.display = 'flex';
+        return;
+      }
+      
+      document.getElementById('categoriesGrid').style.display = 'none';
+      
+      const results = allMovies.filter(movie => 
+        movie.title.toLowerCase().includes(searchTerm) ||
+        movie.genre.toLowerCase().includes(searchTerm) ||
+        (movie.description && movie.description.toLowerCase().includes(searchTerm))
+      );
+      
+      if (results.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="empty-placeholder">
+            <i class="fas fa-film" style="font-size:2rem; margin-bottom: 12px; color:#505050;"></i>
+            <p>No movies found matching "${searchTerm}"</p>
+          </div>
+        `;
+        return;
+      }
+      
+      resultsContainer.innerHTML = results.map(movie => `
+        <div class="search-result-item" onclick='showMovieDetails(${JSON.stringify(movie).replace(/'/g, "&#39;")})'>
+          <img src="${movie.posterUrl || 'https://via.placeholder.com/50x70'}" class="search-result-poster" onerror="this.src='https://via.placeholder.com/50x70'">
+          <div class="search-result-info">
+            <div class="search-result-title">${movie.title}</div>
+            <div class="search-result-meta">${movie.genre} · ${movie.year || '2024'}</div>
+          </div>
+        </div>
+      `).join('');
     }
 
-    // ==================== AUTHENTICATION FUNCTIONS ====================
-    window.handleProtectedAction = function(action, movieId) {
+    // ==================== MY LIST ====================
+    async function addToMyList(movieId) {
       if (!currentUser) {
         document.getElementById('loginModal').classList.add('active');
-      } else {
-        if (action === 'add' && movieId) {
-          addToMyList(movieId);
-        } else {
-          showToast(`Demo: ${action} action`, 'info');
-        }
+        return;
       }
-    };
-
-    async function addToMyList(movieId) {
-      if (!currentUser) return;
       
       const movie = allMovies.find(m => m.id === movieId);
       if (!movie) return;
       
-      const userListRef = database.ref(`users/${currentUser.uid}/myList/${movieId}`);
-      
       try {
-        await userListRef.set({
+        await database.ref(`users/${currentUser.uid}/myList/${movieId}`).set({
           id: movieId,
           title: movie.title,
           posterUrl: movie.posterUrl,
@@ -515,196 +1233,154 @@
       }
     }
 
-    // ==================== MY LIST SCREEN ====================
     async function renderMyListScreen() {
       const container = document.getElementById('myListContent');
-      if (!container) return;
-
+      
       if (!currentUser) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-icon"><i class="fas fa-bookmark"></i></div>
             <h3 style="font-weight: 400; margin-bottom: 12px;">Sign in to see your saved movies</h3>
-            <button class="btn-google"><i class="fab fa-google"></i> Continue with Google</button>
+            <button class="btn-google" onclick="signInWithGoogle()">
+              <i class="fab fa-google"></i> Continue with Google
+            </button>
           </div>
         `;
-      } else {
-        // Load user's list from Firebase
-        const userListRef = database.ref(`users/${currentUser.uid}/myList`);
-        const snapshot = await userListRef.once('value');
-        
-        if (snapshot.exists()) {
-          const listItems = [];
-          snapshot.forEach(child => {
-            listItems.push(child.val());
-          });
-          
-          if (listItems.length > 0) {
-            container.innerHTML = `
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
-                ${listItems.map(item => `
-                  <div onclick="showMovieDetails(${JSON.stringify(item).replace(/"/g, '&quot;')})" 
-                       style="background: #1f1f1f; border-radius: 12px; overflow: hidden; cursor: pointer;">
-                    <img src="${item.posterUrl}" style="width: 100%; height: 150px; object-fit: cover;">
-                    <div style="padding: 10px;">
-                      <div style="font-weight: 600; font-size: 0.9rem;">${item.title}</div>
-                      <div style="font-size: 0.75rem; color: #aaa;">${item.genre}</div>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `;
-          } else {
-            container.innerHTML = `
-              <div class="empty-state">
-                <div class="empty-icon"><i class="fas fa-list"></i></div>
-                <h3 style="font-weight: 400;">Your list is empty</h3>
-                <button class="btn-google" onclick="switchScreen('homeScreen')">Browse Movies</button>
-              </div>
-            `;
-          }
-        } else {
-          container.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-icon"><i class="fas fa-list"></i></div>
-              <h3 style="font-weight: 400;">Your list is empty</h3>
-              <button class="btn-google" onclick="switchScreen('homeScreen')">Browse Movies</button>
-            </div>
-          `;
-        }
+        return;
       }
+      
+      const snapshot = await database.ref(`users/${currentUser.uid}/myList`).once('value');
+      
+      if (!snapshot.exists()) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-list"></i></div>
+            <h3 style="font-weight: 400;">Your list is empty</h3>
+            <button class="btn-google" onclick="switchScreen('homeScreen')" style="background: #2a2a2a;">
+              <i class="fas fa-compass"></i> Browse Movies
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      const listItems = [];
+      snapshot.forEach(child => listItems.push(child.val()));
+      
+      container.innerHTML = `
+        <div class="my-list-grid">
+          ${listItems.map(item => `
+            <div class="my-list-item" onclick='showMovieDetails(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+              <img src="${item.posterUrl || 'https://via.placeholder.com/300x450'}" class="my-list-poster" onerror="this.src='https://via.placeholder.com/300x450'">
+              <div class="my-list-info">
+                <div class="my-list-title">${item.title}</div>
+                <div class="my-list-genre">${item.genre}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
     }
 
-    // ==================== PROFILE SCREEN ====================
+    // ==================== PROFILE ====================
     function renderProfileScreen() {
       const container = document.getElementById('profileContent');
-      if (!container) return;
-
+      
       if (!currentUser) {
         container.innerHTML = `
           <div class="profile-guest">
             <div class="profile-icon"><i class="fas fa-user-circle"></i></div>
             <h2 style="font-size:1.6rem; margin-bottom: 8px;">Guest</h2>
             <p class="text-muted" style="margin-bottom: 16px;">Sign in to access all features</p>
-            <button class="btn-google"><i class="fab fa-google"></i> Continue with Google</button>
-          </div>
-        `;
-      } else {
-        const photoURL = currentUser.photoURL || '';
-        const displayName = currentUser.displayName || 'User';
-        const email = currentUser.email || '';
-
-        container.innerHTML = `
-          <div class="profile-guest" style="padding: 32px 20px;">
-            ${photoURL ? 
-              `<img src="${photoURL}" alt="avatar" class="profile-avatar">` : 
-              `<div class="profile-icon"><i class="fas fa-user-circle"></i></div>`
-            }
-            <h2 class="profile-user-name">${displayName}</h2>
-            <p class="profile-user-email">${email}</p>
-            <p style="margin-bottom: 20px; color: #b0b0b0;">Signed in successfully</p>
-            <button class="btn-google" style="background: #2a2a2a; border:1px solid #555;" id="signOutBtn">
-              <i class="fas fa-sign-out-alt"></i> Sign Out
+            <button class="btn-google" onclick="signInWithGoogle()">
+              <i class="fab fa-google"></i> Continue with Google
             </button>
           </div>
         `;
-
-        const signOutBtn = document.getElementById('signOutBtn');
-        if (signOutBtn) {
-          signOutBtn.addEventListener('click', async () => {
-            try {
-              await auth.signOut();
-            } catch (err) {
-              console.error('Sign out error', err);
-            }
-          });
-        }
+        return;
       }
+      
+      container.innerHTML = `
+        <div class="profile-guest" style="padding: 32px 20px;">
+          ${currentUser.photoURL ? 
+            `<img src="${currentUser.photoURL}" class="profile-avatar">` : 
+            `<div class="profile-icon"><i class="fas fa-user-circle"></i></div>`
+          }
+          <h2 class="profile-user-name">${currentUser.displayName || 'User'}</h2>
+          <p class="profile-user-email">${currentUser.email || ''}</p>
+          <button class="btn-google" style="background: #2a2a2a; border:1px solid #555;" onclick="signOut()">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+          </button>
+        </div>
+      `;
     }
 
-    // ==================== GOOGLE SIGN IN ====================
+    // ==================== AUTHENTICATION ====================
     async function signInWithGoogle() {
       try {
-        const result = await auth.signInWithPopup(provider);
-        currentUser = result.user;
-        console.log('Login success:', currentUser.displayName);
-        
+        await auth.signInWithPopup(provider);
         closeLoginModal();
-        renderMyListScreen();
-        renderProfileScreen();
-        showToast(`Welcome ${currentUser.displayName || 'User'}!`, 'success');
       } catch (error) {
-        console.error('Google Sign-In error:', error);
-        showToast('Sign-in failed. Please try again.', 'error');
+        console.error('Sign-in error:', error);
+        showToast('Sign-in failed');
       }
     }
 
-    document.getElementById('googleSignInBtn')?.addEventListener('click', (e) => {
+    async function signOut() {
+      try {
+        await auth.signOut();
+        switchScreen('homeScreen');
+      } catch (error) {
+        console.error('Sign-out error:', error);
+      }
+    }
+
+    auth.onAuthStateChanged((user) => {
+      currentUser = user;
+      if (user) {
+        console.log('Signed in as:', user.displayName);
+      }
+      
+      if (document.getElementById('myListScreen').classList.contains('active')) {
+        renderMyListScreen();
+      }
+      if (document.getElementById('profileScreen').classList.contains('active')) {
+        renderProfileScreen();
+      }
+    });
+
+    // ==================== LOGIN MODAL ====================
+    function closeLoginModal() {
+      document.getElementById('loginModal').classList.remove('active');
+    }
+
+    document.getElementById('googleSignInBtn').addEventListener('click', (e) => {
       e.preventDefault();
       signInWithGoogle();
     });
 
-    document.body.addEventListener('click', function(e) {
-      const btn = e.target.closest('.btn-google');
-      if (btn && btn.id !== 'googleSignInBtn') {
-        e.preventDefault();
-        if (!currentUser) {
-          signInWithGoogle();
-        }
-      }
+    document.getElementById('loginModal').addEventListener('click', function(e) {
+      if (e.target === this) closeLoginModal();
     });
 
-    // ==================== AUTH STATE CHANGE ====================
-    auth.onAuthStateChanged((user) => {
-      currentUser = user;
-      if (user) {
-        console.log('Logged in as:', user.displayName);
-      } else {
-        console.log('Guest mode');
-      }
-      renderMyListScreen();
-      renderProfileScreen();
-    });
-
-    // ==================== LOGIN MODAL ====================
-    const modal = document.getElementById('loginModal');
-    
-    window.closeLoginModal = function() { 
-      modal.classList.remove('active'); 
-    };
-
-    modal?.addEventListener('click', function(e) {
-      if (e.target === modal) closeLoginModal();
-    });
+    // ==================== UTILITIES ====================
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
 
     // ==================== INITIALIZATION ====================
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('User panel initializing...');
-      
-      // Load movies from Firebase
+      console.log('App starting...');
       loadMoviesFromFirebase();
-      
-      // Initial renders
-      renderMyListScreen();
-      renderProfileScreen();
-      
-      // Set up search placeholder
-      const searchPlaceholder = document.getElementById('searchResultPlaceholder');
-      if (searchPlaceholder) {
-        searchPlaceholder.style.display = 'none';
-      }
     });
-
-    // Add CSS animations
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeOut {
-        from { opacity: 1; transform: translateX(-50%) translateY(0); }
-        to { opacity: 0; transform: translateX(-50%) translateY(10px); }
-      }
-    `;
-    document.head.appendChild(style);
-
   </script>
 </body>
 </html>
